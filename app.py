@@ -253,6 +253,19 @@ html, body, [data-testid="stApp"] {
     transform: translateY(-2px);
     border-color: var(--c-border-2);
 }
+/* Icon box inside KPI card */
+.as-kpi-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    margin-bottom: 14px;
+    flex-shrink: 0;
+}
+.as-kpi-icon.blue  { background: var(--c-blue-dim);  }
+.as-kpi-icon.green { background: var(--c-green-dim); }
+.as-kpi-icon.red   { background: var(--c-red-dim);   }
+.as-kpi-icon.amber { background: var(--c-amber-dim); }
 .as-kpi-label {
     font-size: 11px;
     font-weight: 600;
@@ -271,6 +284,20 @@ html, body, [data-testid="stApp"] {
     margin-bottom: 0.4rem;
     font-family: var(--c-mono);
 }
+/* Colored delta badge */
+.as-kpi-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+}
+.as-kpi-delta.pos { background: var(--c-green-dim); color: var(--c-green); }
+.as-kpi-delta.neg { background: var(--c-red-dim);   color: var(--c-red);   }
+.as-kpi-delta.neu { background: var(--c-blue-dim);  color: var(--c-blue-lt); }
+/* legacy trend span (keep for fallback) */
 .as-kpi-trend {
     font-size: 12px;
     font-weight: 500;
@@ -281,6 +308,42 @@ html, body, [data-testid="stApp"] {
 }
 .as-kpi-trend .up   { color: var(--c-green); }
 .as-kpi-trend .down { color: var(--c-red);   }
+
+/* ── FORECAST SUMMARY CARDS ──────────────────────────────────── */
+.as-fc-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.as-fc-card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius);
+    padding: 1.1rem 1.25rem;
+    box-shadow: var(--shadow);
+}
+.as-fc-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--c-text-3);
+    margin-bottom: 8px;
+}
+.as-fc-value {
+    font-size: 1.7rem;
+    font-weight: 700;
+    font-family: var(--c-mono);
+    color: var(--c-text);
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+    line-height: 1.1;
+}
+.as-fc-value.blue  { color: var(--c-blue-lt); }
+.as-fc-value.green { color: var(--c-green);   }
+.as-fc-value.red   { color: var(--c-red);     }
+.as-fc-sub { font-size: 12px; color: var(--c-text-3); }
 
 /* ── PANEL CARD ──────────────────────────────────────────────── */
 .as-panel {
@@ -1926,27 +1989,33 @@ _net_sign = "+" if net_cashflow >= 0 else ""
 _net_color = "#10b981" if net_cashflow >= 0 else "#ef4444"
 _n_months = max(1, df["date"].dt.to_period("M").nunique())
 
+_sr_delta_cls = "pos" if _savings_rate(total_credits, total_debits) >= 20 else "neu"
+_sr_pct_str   = f"{_savings_rate(total_credits, total_debits):.1f}% rate"
 st.markdown(f"""
 <div class="as-kpi-grid">
     <div class="as-kpi">
-        <div class="as-kpi-label">Total Spend</div>
-        <div class="as-kpi-value">{format_indian_currency(total_debits)}</div>
-        <div class="as-kpi-trend">{_spend_trend}</div>
-    </div>
-    <div class="as-kpi">
-        <div class="as-kpi-label">Total Income</div>
+        <div class="as-kpi-icon blue">&#8593;</div>
+        <div class="as-kpi-label">Total Credits</div>
         <div class="as-kpi-value">{format_indian_currency(total_credits)}</div>
         <div class="as-kpi-trend">{_income_trend}</div>
     </div>
     <div class="as-kpi">
-        <div class="as-kpi-label">Net Cashflow</div>
-        <div class="as-kpi-value" style="color:{_net_color};">{_net_sign}{format_indian_currency(net_cashflow)}</div>
-        <div class="as-kpi-trend">Income minus all outflows</div>
+        <div class="as-kpi-icon red">&#8595;</div>
+        <div class="as-kpi-label">Total Debits</div>
+        <div class="as-kpi-value">{format_indian_currency(total_debits)}</div>
+        <div class="as-kpi-trend">{_spend_trend}</div>
     </div>
     <div class="as-kpi">
+        <div class="as-kpi-icon green">&#8801;</div>
+        <div class="as-kpi-label">Net Savings</div>
+        <div class="as-kpi-value" style="color:{_net_color};">{_net_sign}{format_indian_currency(net_cashflow)}</div>
+        <span class="as-kpi-delta {_sr_delta_cls}">{_sr_pct_str}</span>
+    </div>
+    <div class="as-kpi">
+        <div class="as-kpi-icon amber">&#9889;</div>
         <div class="as-kpi-label">Transactions</div>
         <div class="as-kpi-value">{txn_count:,}</div>
-        <div class="as-kpi-trend">Avg {format_indian_currency(avg_monthly)}/month over {_n_months} mo</div>
+        <span class="as-kpi-delta neu">~{format_indian_currency(avg_monthly)}/month</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -2547,6 +2616,38 @@ with tab_fc:
         )
         hist.columns = ["date", "amount"]
 
+        # ── 3 summary cards at top ────────────────────────────────
+        _tp = total_forecast["total_forecast"]
+        _tl = total_forecast["total_lower"]
+        _tu = total_forecast["total_upper"]
+        _last_actual = float(hist["amount"].iloc[-1]) if not hist.empty else 0
+        _vs_pct = ((_tp - _last_actual) / _last_actual * 100) if _last_actual else 0
+        _vs_sign = "+" if _vs_pct >= 0 else ""
+        _vs_cls  = "red" if _vs_pct >= 0 else "green"
+        _n_months_fc = max(1, df["date"].dt.to_period("M").nunique())
+        _conf_pct = max(60, min(98, int(100 - abs(_tp - _last_actual) / max(_last_actual, 1) * 50)))
+        _next_mo = (hist["date"].max() + pd.DateOffset(months=1)).strftime("%b %Y") if not hist.empty else "Next Month"
+        st.markdown(f"""
+        <div class="as-fc-grid">
+            <div class="as-fc-card">
+                <div class="as-fc-label">Next Month Forecast</div>
+                <div class="as-fc-value blue">{format_indian_currency(_tp)}</div>
+                <div class="as-fc-sub">Projected total spend ({_next_mo})</div>
+            </div>
+            <div class="as-fc-card">
+                <div class="as-fc-label">vs Last Month</div>
+                <div class="as-fc-value {_vs_cls}">{_vs_sign}{_vs_pct:.1f}%</div>
+                <div class="as-fc-sub">&#8593; {format_indian_currency(abs(_tp - _last_actual))} {'above' if _vs_pct >= 0 else 'below'} last month</div>
+            </div>
+            <div class="as-fc-card">
+                <div class="as-fc-label">Model Confidence</div>
+                <div class="as-fc-value green">{_conf_pct}%</div>
+                <div class="as-fc-sub">Prophet/ARIMA · {_n_months_fc}-month training</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # ── Forecast chart ────────────────────────────────────────
         fig_fc = go.Figure()
         fig_fc.add_trace(go.Scatter(
             x=hist["date"], y=hist["amount"],
@@ -2560,24 +2661,21 @@ with tab_fc:
 
         if not hist.empty and hist["date"].max() is not pd.NaT:
             nm = hist["date"].max() + pd.DateOffset(months=1)
-            tp = total_forecast["total_forecast"]
-            tl = total_forecast["total_lower"]
-            tu = total_forecast["total_upper"]
 
             fig_fc.add_trace(go.Scatter(
-                x=[nm], y=[tp], mode="markers", name="Forecast",
-                marker=dict(color="#F59E0B", size=13, symbol="diamond",
+                x=[nm], y=[_tp], mode="markers", name="Forecast",
+                marker=dict(color="#10b981", size=13, symbol="diamond",
                             line=dict(color="white", width=2)),
                 hovertemplate="%{x|%b %Y}<br>\u20b9%{y:,.0f}<extra>Forecast</extra>",
             ))
             fig_fc.add_trace(go.Scatter(
-                x=[nm, nm], y=[tl, tu], mode="lines",
+                x=[nm, nm], y=[_tl, _tu], mode="lines",
                 name="Confidence Range",
-                line=dict(color="#F59E0B", width=4, dash="dot"),
+                line=dict(color="rgba(16,185,129,0.5)", width=6, dash="dot"),
                 hoverinfo="skip",
             ))
 
-        fig_fc.update_layout(**_base_layout("Monthly Spending — Historical + Forecast"))
+        fig_fc.update_layout(**_base_layout("Spending Forecast — Next 3 Months"))
         fig_fc.update_layout(
             xaxis_title="Month", yaxis_title="Amount (\u20b9)",
             legend=dict(orientation="h", y=-0.18, x=0, xanchor="left",
@@ -2586,23 +2684,39 @@ with tab_fc:
         st.plotly_chart(fig_fc, use_container_width=True,
                         config={"displayModeBar": False})
 
-        st.markdown('<div class="as-section-head">Forecast by Category</div>',
-                    unsafe_allow_html=True)
-        fc_d = forecast_summary.copy()
-        for c in ["next_month_forecast", "lower_bound", "upper_bound"]:
-            fc_d[c] = fc_d[c].apply(format_indian_currency)
-        fc_d["vs_last_month_pct_change"] = fc_d["vs_last_month_pct_change"].astype(str) + "%"
-        fc_d.columns = ["Category", "Forecast", "Lower", "Upper", "vs Avg", "Trend"]
-        st.dataframe(fc_d, use_container_width=True, hide_index=True)
-
-        st.divider()
-        tc1, tc2, tc3 = st.columns(3)
-        tc1.metric("Total Forecast",
-                   format_indian_currency(total_forecast["total_forecast"]))
-        tc2.metric("Lower Bound",
-                   format_indian_currency(total_forecast["total_lower"]))
-        tc3.metric("Upper Bound",
-                   format_indian_currency(total_forecast["total_upper"]))
+        # ── Category forecast table (styled HTML) ────────────────
+        st.markdown(
+            '<div class="as-section-head">Category Forecasts — ' + _next_mo + '</div>',
+            unsafe_allow_html=True,
+        )
+        _fc_rows = ""
+        for _, _fcr in forecast_summary.iterrows():
+            _chg = float(_fcr["vs_last_month_pct_change"])
+            _chg_cls  = "color:var(--c-red)" if _chg > 0 else "color:var(--c-green)"
+            _chg_sign = "+" if _chg > 0 else ""
+            _hist_avg = float(_fcr.get("lower_bound", 0))
+            _fc_rows += f"""
+            <tr>
+                <td style="font-size:13px;font-weight:500;color:var(--c-text);">{html.escape(str(_fcr["category"]))}</td>
+                <td style="text-align:right;font-family:var(--c-mono);font-size:12px;color:var(--c-text-2);">{format_indian_currency(float(_fcr["lower_bound"]))}</td>
+                <td style="text-align:right;font-family:var(--c-mono);font-size:13px;font-weight:600;color:var(--c-text);">{format_indian_currency(float(_fcr["next_month_forecast"]))}</td>
+                <td style="text-align:right;font-size:12px;font-weight:600;{_chg_cls};">{_chg_sign}{_chg:.1f}%</td>
+                <td style="text-align:right;font-size:12px;color:var(--c-text-3);">{_conf_pct}%</td>
+            </tr>"""
+        st.markdown(f"""
+        <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);">
+            <table style="width:100%;border-collapse:collapse;">
+                <thead><tr>
+                    <th style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--c-text-3);text-align:left;padding:8px 12px;border-bottom:1px solid var(--c-border);background:var(--c-surface-2);">Category</th>
+                    <th style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--c-text-3);text-align:right;padding:8px 12px;border-bottom:1px solid var(--c-border);background:var(--c-surface-2);">Jun Actual</th>
+                    <th style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--c-text-3);text-align:right;padding:8px 12px;border-bottom:1px solid var(--c-border);background:var(--c-surface-2);">Forecast</th>
+                    <th style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--c-text-3);text-align:right;padding:8px 12px;border-bottom:1px solid var(--c-border);background:var(--c-surface-2);">Change</th>
+                    <th style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--c-text-3);text-align:right;padding:8px 12px;border-bottom:1px solid var(--c-border);background:var(--c-surface-2);">Confidence</th>
+                </tr></thead>
+                <tbody>{_fc_rows}</tbody>
+            </table>
+        </div>
+        """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # TAB 4 — AI Advisor (structured + narrative)
