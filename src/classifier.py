@@ -443,7 +443,8 @@ class TransactionClassifier:
     # ------------------------------------------------------------------
     def _get_zs_pipeline(self):
         if not hasattr(self, "_zs_pipeline"):
-            from transformers import pipeline as _pipeline
+            # Import directly from submodule to avoid transformers 5.x lazy-module issues
+            from transformers.pipelines import pipeline as _pipeline
             self._zs_pipeline = _pipeline(
                 "zero-shot-classification",
                 model="cross-encoder/nli-MiniLM2-L6-H768",
