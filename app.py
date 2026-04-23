@@ -160,6 +160,18 @@ footer                            { display: none !important; }
     color: var(--c-text);
 }
 .as-wordmark-accent { color: var(--c-blue); }
+.as-kbd-badge {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--c-blue-lt);
+    background: var(--c-blue-dim);
+    border: 1px solid rgba(59,130,246,0.25);
+    border-radius: 4px;
+    padding: 2px 6px;
+    cursor: default;
+}
 .as-sidebar-divider {
     height: 1px;
     background: var(--c-border);
@@ -194,6 +206,41 @@ footer                            { display: none !important; }
     height: 1px;
     background: rgba(255,255,255,0.06);
     margin: 0 0 1.5rem 0;
+}
+.as-ts-badge {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--c-text-3);
+    background: var(--c-surface-2);
+    border: 1px solid var(--c-border-2);
+    border-radius: 20px;
+    padding: 0.3rem 0.75rem;
+    align-self: flex-start;
+    white-space: nowrap;
+    letter-spacing: 0.01em;
+}
+/* Goal progress bar */
+.as-goal-progress-wrap {
+    margin: 0.75rem 0 0.5rem;
+}
+.as-goal-progress-track {
+    height: 8px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-bottom: 0.4rem;
+}
+.as-goal-progress-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, #2563eb, #10b981);
+    transition: width 0.6s ease;
+}
+.as-goal-progress-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--c-text-3);
 }
 .as-dl-btn {
     display: inline-flex;
@@ -1526,7 +1573,10 @@ def _base_layout(title: str = "", height: int | None = None) -> dict:
 with st.sidebar:
     st.markdown("""
     <div style="padding: 0.25rem 0 1.25rem 0; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 1.25rem;">
-        <div class="as-wordmark"><span class="as-wordmark-accent">Artha</span>Sense</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div class="as-wordmark"><span class="as-wordmark-accent">Artha</span>Sense</div>
+            <span class="as-kbd-badge" title="Upload: drag &amp; drop · Sample: click Load Sample">v3</span>
+        </div>
         <div style="font-size:11.5px;color:var(--c-text-3);letter-spacing:0.08em;text-transform:uppercase;margin-top:6px;">Finance Intelligence</div>
     </div>
     """, unsafe_allow_html=True)
@@ -2123,6 +2173,7 @@ def run_pipeline(df_clean: pd.DataFrame, cache_key: str, use_zs: bool) -> None:
         "total_forecast":   total_forecast,
         "forecaster":       forecaster,
         "pipeline_key":     settings_key,
+        "analysis_ts":      datetime.now(),
     })
     if "category" in df.columns:
         st.session_state["_txn_cats"] = ["All"] + sorted(
@@ -2395,12 +2446,15 @@ _dr_str = ""
 if dr:
     _dr_str = f"{dr[0].strftime('%d %b %Y')} &ndash; {dr[1].strftime('%d %b %Y')}"
 
+_analysis_ts = st.session_state.get("analysis_ts")
+_ts_str = _analysis_ts.strftime("%-d %b %Y, %-I:%M %p") if _analysis_ts else ""
 st.markdown(f"""
 <div class="as-report-header">
     <div>
         <div class="as-report-label">Financial Report</div>
         <div class="as-report-date">{_dr_str}</div>
     </div>
+    {f'<div class="as-ts-badge">&#128344; Analysed {_ts_str}</div>' if _ts_str else ''}
 </div>
 <div class="as-header-rule"></div>
 """, unsafe_allow_html=True)
@@ -3518,6 +3572,37 @@ with tab_plan:
                 unsafe_allow_html=True,
             )
 
+        # Before/After bar chart for all categories
+        if not _cat_monthly.empty:
+            _sim_cats   = _cat_monthly.index.tolist()
+            _sim_before = _cat_monthly.values.tolist()
+            _sim_after  = [
+                v * (1 - _cut_pct / 100) if c == _sel_cat else v
+                for c, v in zip(_sim_cats, _sim_before)
+            ]
+            _sim_df = pd.DataFrame({
+                "Category": _sim_cats * 2,
+                "Monthly Spend (₹)": _sim_before + _sim_after,
+                "Scenario": ["Current"] * len(_sim_cats) + ["After Cut"] * len(_sim_cats),
+            })
+            _sim_fig = px.bar(
+                _sim_df, x="Category", y="Monthly Spend (₹)", color="Scenario",
+                barmode="group",
+                color_discrete_map={"Current": "#2563eb", "After Cut": "#10b981"},
+                template="plotly_dark",
+            )
+            _sim_fig.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(family="Inter, sans-serif", color="#9ca3af", size=11),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
+                            bgcolor="rgba(0,0,0,0)", font=dict(size=11)),
+                margin=dict(l=0, r=0, t=30, b=0),
+                height=260,
+                xaxis=dict(gridcolor="rgba(255,255,255,0.04)", tickangle=-30),
+                yaxis=dict(gridcolor="rgba(255,255,255,0.04)"),
+            )
+            st.plotly_chart(_sim_fig, use_container_width=True)
+
     # ── Tool 2: Goal Tracker ──────────────────────────────────────────────────
     st.markdown(
         '<div class="as-section-label" style="margin-top:2rem;">Tool</div>'
@@ -3541,10 +3626,16 @@ with tab_plan:
                                   if _biggest_cat_mo > 0 else 100)
             _biggest_cat_name = _cat_monthly.idxmax() if not _cat_monthly.empty else "—"
 
+            # Progress toward goal — assume 1 month of savings already applied
+            _saved_so_far = _monthly_savings
+            _progress_pct = min(100, (_saved_so_far / _goal_amount) * 100)
+            _progress_fill_w = f"{_progress_pct:.1f}%"
+            _remaining = max(0, _goal_amount - _saved_so_far)
+
             st.markdown(
                 f'<div class="as-panel">'
                 f'<div class="as-panel-label">Goal: {_goal_name}</div>'
-                f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">'
+                f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:0.75rem;">'
                 f'<div><div style="font-size:12px;color:#6B7280;">At current rate</div>'
                 f'<div style="font-size:1.5rem;font-weight:600;color:#f59e0b;">'
                 f'{_months_needed:.1f} mo</div></div>'
@@ -3552,7 +3643,19 @@ with tab_plan:
                 f'<div style="font-size:1.5rem;font-weight:600;color:#10b981;">'
                 f'{_months_half:.1f} mo</div></div>'
                 f'</div>'
-                f'<div style="font-size:13px;color:#9ca3af;'
+                f'<div class="as-goal-progress-wrap">'
+                f'<div style="font-size:11px;color:var(--c-text-3);margin-bottom:0.3rem;">'
+                f'Progress · {format_indian_currency(_saved_so_far)} saved of {format_indian_currency(_goal_amount)}'
+                f'</div>'
+                f'<div class="as-goal-progress-track">'
+                f'<div class="as-goal-progress-fill" style="width:{_progress_fill_w};"></div>'
+                f'</div>'
+                f'<div class="as-goal-progress-labels">'
+                f'<span>{_progress_pct:.1f}% complete</span>'
+                f'<span>{format_indian_currency(_remaining)} remaining</span>'
+                f'</div>'
+                f'</div>'
+                f'<div style="font-size:13px;color:#9ca3af;margin-top:0.6rem;'
                 f'padding:0.6rem;background:rgba(37,99,235,0.06);'
                 f'border-radius:6px;border-left:2px solid #2563eb;">'
                 f'Cut <strong style="color:#ffffff;">{_biggest_cat_name}</strong> by '
