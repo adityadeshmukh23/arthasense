@@ -1116,6 +1116,37 @@ div[data-testid="stMetric"] [data-testid="stMetricDelta"] { color: var(--c-text-
     border-color: var(--c-red);
     color: var(--c-red);
 }
+/* Streamlit buttons used as tab-style filter pills */
+[data-testid="stHorizontalBlock"] [data-testid="stButton"] button {
+    border-radius: 20px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    transition: all 0.18s ease, transform 0.1s ease !important;
+    padding: 0.3rem 1rem !important;
+}
+[data-testid="stHorizontalBlock"] [data-testid="stButton"] button:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(37,99,235,0.25) !important;
+}
+[data-testid="stHorizontalBlock"] [data-testid="stButton"] button:active {
+    transform: scale(0.96) !important;
+    transition: transform 0.08s ease !important;
+}
+[data-testid="stHorizontalBlock"] [data-testid="stButton"] button[kind="primary"] {
+    background: var(--c-blue) !important;
+    border-color: var(--c-blue) !important;
+    color: #fff !important;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.2) !important;
+}
+[data-testid="stHorizontalBlock"] [data-testid="stButton"] button[kind="secondary"] {
+    background: var(--c-surface) !important;
+    border: 1px solid var(--c-border) !important;
+    color: var(--c-text-2) !important;
+}
+[data-testid="stHorizontalBlock"] [data-testid="stButton"] button[kind="secondary"]:hover {
+    border-color: var(--c-blue) !important;
+    color: var(--c-blue-lt) !important;
+}
 .tx-table-wrap {
     background: var(--c-surface);
     border: 1px solid var(--c-border);
@@ -3093,17 +3124,11 @@ with tab_txn:
     _type_cols = st.columns(len(_type_options) + 4)
     for _i, _opt in enumerate(_type_options):
         _is_active = st.session_state["txn_type_filter"] == _opt
-        _btn_style = (
-            "background:#2563eb;border:1px solid #2563eb;color:#fff;"
-            if _is_active and _opt != "⚠ Anomalies"
-            else ("background:rgba(239,68,68,0.15);border:1px solid #ef4444;color:#ef4444;"
-                  if _is_active and _opt == "⚠ Anomalies"
-                  else "background:var(--c-surface);border:1px solid var(--c-border);color:var(--c-text-2);")
-        )
         if _type_cols[_i].button(
             _opt,
             key=f"txn_type_{_i}",
             use_container_width=True,
+            type="primary" if _is_active else "secondary",
         ):
             st.session_state["txn_type_filter"] = _opt
 
@@ -3121,8 +3146,11 @@ with tab_txn:
     _type_sel = st.session_state.get("txn_type_filter", "All")
 
     if _txn_search:
-        _desc_m = _txn_work["description"].astype(str).str.contains(_txn_search, case=False, na=False)
-        _cat_m  = _txn_work["category"].astype(str).str.contains(_txn_search, case=False, na=False) if "category" in _txn_work.columns else pd.Series(False, index=_txn_work.index)
+        _q = _txn_search.strip()
+        _desc_m = _txn_work["description"].astype(str).str.contains(_q, case=False, na=False, regex=False)
+        _cat_m  = (_txn_work["category"].astype(str).str.contains(_q, case=False, na=False, regex=False)
+                   if "category" in _txn_work.columns
+                   else pd.Series(False, index=_txn_work.index))
         _txn_work = _txn_work[_desc_m | _cat_m]
 
     if _type_sel == "Debits":
