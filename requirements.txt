@@ -1,0 +1,22 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+streamlit>=1.35.0
+pandas>=2.0.0
+numpy>=1.26.0
+scikit-learn>=1.4.0
+transformers>=4.40.0
+torch>=2.2.0
+prophet>=1.1.5
+plotly>=5.20.0
+google-genai>=1.0.0
+python-dotenv>=1.0.0
+statsmodels>=0.14.0
+
+# PDF input parsing (text-based PDFs)
+pdfplumber>=0.10.0
+
+# Excel input support (.xlsx)
+openpyxl>=3.1.0
+
+# PDF report generation
+fpdf2>=2.7.0

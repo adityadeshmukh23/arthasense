@@ -1,0 +1,27 @@
+date,description,amount,type
+2024-01-05,Swiggy Order #84521,450.00,debit
+2024-01-07,Zomato Food Delivery,320.00,debit
+2024-01-08,IRCTC Train Booking PNR 2451678,1250.00,debit
+2024-01-10,Amazon Shopping Order,2999.00,debit
+2024-01-12,Netflix Subscription Renewal,649.00,debit
+2024-01-13,Practo Doctor Consultation,500.00,debit
+2024-01-15,BookMyShow Movie Tickets,750.00,debit
+2024-01-15,Uber Ride to Airport,890.00,debit
+2024-01-17,Myntra Fashion Purchase,1799.00,debit
+2024-01-18,BigBasket Grocery Order,2150.00,debit
+2024-01-20,PhonePe Jio Recharge,399.00,debit
+2024-01-21,ATM Cash Withdrawal,5000.00,debit
+2024-01-22,Zerodha Mutual Fund SIP,5000.00,debit
+2024-01-23,Bajaj Finserv EMI Payment,3500.00,debit
+2024-01-25,Salary Credit - TCS Ltd,85000.00,credit
+2024-01-26,Flipkart Electronics Sale,4599.00,debit
+2024-01-27,Ola Cab Ride,245.00,debit
+2024-01-28,Airtel Broadband Bill,999.00,debit
+2024-01-29,Amazon Refund Order #7823,1500.00,credit
+2024-01-30,Spotify Premium Subscription,119.00,debit
+2024-02-01,House painting contractor charges,8500.00,debit
+2024-02-03,Auto rickshaw to office,80.00,debit
+2024-02-05,Weekend brunch outing with friends,1200.00,debit
+2024-02-07,Plumber repair charges at home,650.00,debit
+2024-02-10,Online course subscription fee,2999.00,debit
+2024-02-12,Vegetable vendor weekly payment,540.00,debit
