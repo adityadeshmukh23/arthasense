@@ -1000,6 +1000,137 @@ div[data-testid="stMetric"] [data-testid="stMetricDelta"] { color: var(--c-text-
     margin-bottom: 2rem;
     box-shadow: var(--shadow);
 }
+
+/* ── TRANSACTIONS TAB ────────────────────────────────────────── */
+.tx-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+.tx-search-wrap {
+    flex: 1;
+    min-width: 180px;
+    position: relative;
+}
+.tx-search-wrap input {
+    width: 100%;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius-sm);
+    padding: 0.45rem 0.75rem 0.45rem 2rem;
+    font-size: 13px;
+    color: var(--c-text);
+    outline: none;
+    box-sizing: border-box;
+}
+.tx-search-wrap::before {
+    content: "🔍";
+    position: absolute;
+    left: 0.55rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    pointer-events: none;
+}
+.tx-filters { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.tx-filter-btn {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: 20px;
+    padding: 0.3rem 0.85rem;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--c-text-2);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+}
+.tx-filter-btn:hover { border-color: var(--c-blue); color: var(--c-blue-lt); }
+.tx-filter-btn.active {
+    background: var(--c-blue);
+    border-color: var(--c-blue);
+    color: #fff;
+}
+.tx-filter-btn.anom-active {
+    background: var(--c-red-dim);
+    border-color: var(--c-red);
+    color: var(--c-red);
+}
+.tx-table-wrap {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    overflow-x: auto;
+}
+.tx-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 640px;
+}
+.tx-table thead tr {
+    background: var(--c-surface-2);
+    border-bottom: 1px solid var(--c-border);
+}
+.tx-table thead th {
+    padding: 0.65rem 1rem;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--c-text-3);
+    white-space: nowrap;
+}
+.tx-table thead th:last-child,
+.tx-table tbody td:last-child { text-align: right; }
+.tx-table tbody tr {
+    border-bottom: 1px solid var(--c-border);
+    transition: background 0.1s;
+}
+.tx-table tbody tr:last-child { border-bottom: none; }
+.tx-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+.tx-table tbody td {
+    padding: 0.7rem 1rem;
+    color: var(--c-text);
+    vertical-align: middle;
+}
+.tx-date { color: var(--c-text-3); font-size: 12px; white-space: nowrap; }
+.tx-merchant { font-weight: 500; color: var(--c-text); }
+.tx-merchant-sub { font-size: 11px; color: var(--c-text-3); margin-top: 1px; }
+.tx-cat-pill {
+    display: inline-block;
+    background: var(--c-blue-dim);
+    color: var(--c-blue-lt);
+    border-radius: 20px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.tx-amount { font-weight: 600; white-space: nowrap; }
+.tx-amount.debit  { color: var(--c-red); }
+.tx-amount.credit { color: var(--c-green); }
+.tx-anomaly-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--c-red);
+    margin-right: 5px;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+.tx-row-anom { background: rgba(239,68,68,0.04) !important; }
+.tx-empty {
+    padding: 2.5rem;
+    text-align: center;
+    color: var(--c-text-3);
+    font-size: 13px;
+}
 </style>
 
 <script>
@@ -2853,82 +2984,132 @@ with tab_ai:
 # TAB 5 — Transactions
 # ═══════════════════════════════════════════════════════════════════════════
 with tab_txn:
-    # Build display dataframe
-    want_cols = ["date", "description", "debit", "credit", "balance",
-                 "category", "transaction_type", "anomaly_score", "is_anomaly"]
-    show_cols = [c for c in want_cols if c in df.columns]
-    txn_src   = df[show_cols].copy()
-
-    # Format dates as "1 Jan 2024", amounts with ₹ prefix
-    if "date" in txn_src.columns:
-        txn_src["date"] = txn_src["date"].dt.strftime("%-d %b %Y")
-    for _ac in ["debit", "credit", "balance"]:
-        if _ac in txn_src.columns:
-            txn_src[_ac] = txn_src[_ac].apply(
-                lambda x: f"₹{x:,.2f}" if pd.notna(x) and x != 0 else ""
-            )
-    if "anomaly_score" in txn_src.columns:
-        txn_src["anomaly_score"] = txn_src["anomaly_score"].round(3)
-
-    # Rename columns
-    col_rename = {
-        "date": "Date", "description": "Description",
-        "debit": "Debit", "credit": "Credit", "balance": "Balance",
-        "category": "Category", "transaction_type": "Type",
-        "anomaly_score": "Score", "is_anomaly": "Flagged",
-    }
-    txn_src.rename(columns={k: v for k, v in col_rename.items() if k in txn_src.columns},
-                   inplace=True)
-
-    # Search filter
+    # ── Search + type filter ─────────────────────────────────────────────
     _txn_search = st.text_input(
         "Search transactions",
-        placeholder="Search by description, category...",
+        placeholder="🔍  Search by description or category…",
         label_visibility="collapsed",
         key="txn_search",
     )
 
-    # Category filter using pills (list computed once after pipeline and cached)
+    _type_options = ["All", "Debits", "Credits", "⚠ Anomalies"]
+    if "txn_type_filter" not in st.session_state:
+        st.session_state["txn_type_filter"] = "All"
+
+    _type_cols = st.columns(len(_type_options) + 4)
+    for _i, _opt in enumerate(_type_options):
+        _is_active = st.session_state["txn_type_filter"] == _opt
+        _btn_style = (
+            "background:#2563eb;border:1px solid #2563eb;color:#fff;"
+            if _is_active and _opt != "⚠ Anomalies"
+            else ("background:rgba(239,68,68,0.15);border:1px solid #ef4444;color:#ef4444;"
+                  if _is_active and _opt == "⚠ Anomalies"
+                  else "background:var(--c-surface);border:1px solid var(--c-border);color:var(--c-text-2);")
+        )
+        if _type_cols[_i].button(
+            _opt,
+            key=f"txn_type_{_i}",
+            use_container_width=True,
+        ):
+            st.session_state["txn_type_filter"] = _opt
+            st.rerun()
+
+    # ── Category filter via selectbox ────────────────────────────────────
     _txn_cats = st.session_state.get("_txn_cats", ["All"])
-    _selected_cat = st.pills(
+    _selected_cat = st.selectbox(
         "Filter by category",
         options=_txn_cats,
-        default="All",
         key="txn_cat_filter",
         label_visibility="collapsed",
     )
 
-    # Apply filters
-    _txn_display = txn_src.copy()
+    # ── Build filtered dataframe ─────────────────────────────────────────
+    _txn_work = df.copy()
+    _type_sel = st.session_state.get("txn_type_filter", "All")
+
     if _txn_search:
-        _desc_mask = (
-            _txn_display["Description"].astype(str).str.contains(_txn_search, case=False, na=False)
-            if "Description" in _txn_display.columns
-            else pd.Series(False, index=_txn_display.index)
-        )
-        _cat_mask = (
-            _txn_display["Category"].astype(str).str.contains(_txn_search, case=False, na=False)
-            if "Category" in _txn_display.columns
-            else pd.Series(False, index=_txn_display.index)
-        )
-        _txn_display = _txn_display[_desc_mask | _cat_mask]
-    if _selected_cat and _selected_cat != "All" and "Category" in _txn_display.columns:
-        _txn_display = _txn_display[_txn_display["Category"] == _selected_cat]
+        _desc_m = _txn_work["description"].astype(str).str.contains(_txn_search, case=False, na=False)
+        _cat_m  = _txn_work["category"].astype(str).str.contains(_txn_search, case=False, na=False) if "category" in _txn_work.columns else pd.Series(False, index=_txn_work.index)
+        _txn_work = _txn_work[_desc_m | _cat_m]
+
+    if _type_sel == "Debits":
+        _txn_work = _txn_work[_txn_work["transaction_type"] == "debit"]
+    elif _type_sel == "Credits":
+        _txn_work = _txn_work[_txn_work["transaction_type"] == "credit"]
+    elif _type_sel == "⚠ Anomalies":
+        if "is_anomaly" in _txn_work.columns:
+            _txn_work = _txn_work[_txn_work["is_anomaly"] == True]
+
+    if _selected_cat and _selected_cat != "All" and "category" in _txn_work.columns:
+        _txn_work = _txn_work[_txn_work["category"] == _selected_cat]
 
     _ROW_LIMIT = 500
-    if len(_txn_display) > _ROW_LIMIT:
-        st.caption(
-            f"Showing first {_ROW_LIMIT} of {len(_txn_display)} transactions "
-            f"— download CSV for all."
-        )
-        _txn_display = _txn_display.iloc[:_ROW_LIMIT]
+    _total_rows = len(_txn_work)
+    _txn_work = _txn_work.iloc[:_ROW_LIMIT]
 
-    st.dataframe(
-        _txn_display,
-        use_container_width=True,
-        hide_index=True,
-        height=520,
-    )
+    # ── Render custom HTML table ─────────────────────────────────────────
+    def _build_tx_table(rows_df):
+        if rows_df.empty:
+            return '<div class="tx-empty">No transactions match your filters.</div>'
+
+        html = ['<div class="tx-table-wrap"><table class="tx-table">']
+        html.append(
+            '<thead><tr>'
+            '<th>Date</th><th>Description</th><th>Category</th>'
+            '<th>Type</th><th style="text-align:right">Amount</th>'
+            '</tr></thead><tbody>'
+        )
+
+        for _, row in rows_df.iterrows():
+            is_anom = bool(row.get("is_anomaly", False))
+            tr_cls  = ' class="tx-row-anom"' if is_anom else ''
+
+            # Date
+            try:
+                date_str = row["date"].strftime("%-d %b %Y") if pd.notna(row["date"]) else ""
+            except Exception:
+                date_str = str(row.get("date", ""))
+
+            # Description — truncate long names
+            desc = str(row.get("description", ""))
+            desc_display = (desc[:42] + "…") if len(desc) > 45 else desc
+            anom_dot = '<span class="tx-anomaly-dot"></span>' if is_anom else ''
+
+            # Category pill
+            cat = str(row.get("category", "Uncategorized"))
+            cat_html = f'<span class="tx-cat-pill">{cat}</span>'
+
+            # Transaction type badge
+            txn_type = str(row.get("transaction_type", "")).capitalize()
+
+            # Amount
+            debit_val  = row.get("debit",  0) or 0
+            credit_val = row.get("credit", 0) or 0
+            if debit_val and float(debit_val) > 0:
+                amt_html = f'<span class="tx-amount debit">- ₹{float(debit_val):,.2f}</span>'
+            elif credit_val and float(credit_val) > 0:
+                amt_html = f'<span class="tx-amount credit">+ ₹{float(credit_val):,.2f}</span>'
+            else:
+                amt_html = '<span class="tx-amount" style="color:var(--c-text-3)">—</span>'
+
+            html.append(
+                f'<tr{tr_cls}>'
+                f'<td><span class="tx-date">{date_str}</span></td>'
+                f'<td><span class="tx-merchant">{anom_dot}{desc_display}</span></td>'
+                f'<td>{cat_html}</td>'
+                f'<td><span style="font-size:12px;color:var(--c-text-3)">{txn_type}</span></td>'
+                f'<td style="text-align:right">{amt_html}</td>'
+                f'</tr>'
+            )
+
+        html.append('</tbody></table></div>')
+        return "".join(html)
+
+    if _total_rows > _ROW_LIMIT:
+        st.caption(f"Showing first {_ROW_LIMIT} of {_total_rows} transactions — download CSV for all.")
+
+    st.markdown(_build_tx_table(_txn_work), unsafe_allow_html=True)
+    st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
 
     st.download_button(
         label="Download Analysed CSV",
