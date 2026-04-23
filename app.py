@@ -144,7 +144,7 @@ html, body, [data-testid="stApp"] {
 }
 
 .as-wordmark {
-    font-size: 1.35rem;
+    font-size: 1.85rem;
     font-weight: 800;
     letter-spacing: -0.04em;
     line-height: 1;
@@ -1269,7 +1269,7 @@ with st.sidebar:
     st.markdown("""
     <div style="padding: 0.25rem 0 1.25rem 0; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 1.25rem;">
         <div class="as-wordmark"><span class="as-wordmark-accent">Artha</span>Sense</div>
-        <div style="font-size:11px;color:var(--c-text-3);letter-spacing:0.06em;text-transform:uppercase;margin-top:4px;">Finance Intelligence</div>
+        <div style="font-size:11.5px;color:var(--c-text-3);letter-spacing:0.08em;text-transform:uppercase;margin-top:6px;">Finance Intelligence</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -3012,7 +3012,6 @@ with tab_txn:
             use_container_width=True,
         ):
             st.session_state["txn_type_filter"] = _opt
-            st.rerun()
 
     # ── Category filter via selectbox ────────────────────────────────────
     _txn_cats = st.session_state.get("_txn_cats", ["All"])
