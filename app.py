@@ -104,7 +104,15 @@ html, body, [data-testid="stApp"] {
     position: relative;
     z-index: 1;
 }
-#MainMenu, footer, header { visibility: hidden; }
+/* ── Hide all Streamlit chrome (display:none removes the space too) ── */
+#MainMenu                         { display: none !important; }
+footer                            { display: none !important; }
+[data-testid="stHeader"]          { display: none !important; }
+[data-testid="stDecoration"]      { display: none !important; }
+[data-testid="stToolbar"]         { display: none !important; }
+[data-testid="stStatusWidget"]    { display: none !important; }
+[data-testid="stDeployButton"]    { display: none !important; }
+[data-testid="stAppDeployButton"] { display: none !important; }
 
 /* scrollbar */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -239,6 +247,13 @@ html, body, [data-testid="stApp"] {
     gap: 1rem;
     margin-bottom: 1.5rem;
 }
+@media (max-width: 1100px) {
+    .as-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+    .as-kpi-grid { grid-template-columns: 1fr; }
+    .as-fc-grid  { grid-template-columns: 1fr !important; }
+}
 .as-kpi {
     background: var(--c-surface);
     border: 1px solid var(--c-border);
@@ -366,28 +381,30 @@ html, body, [data-testid="stApp"] {
 
 /* ── SECTION HEADERS ─────────────────────────────────────────── */
 .as-section-label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.1em;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--c-text-3);
+    color: var(--c-blue-lt);
     margin-bottom: 0.35rem;
+    opacity: 0.8;
 }
 .as-section-title {
-    font-size: 1.2rem;
-    font-weight: 600;
+    font-size: 1.25rem;
+    font-weight: 700;
     color: var(--c-text);
     margin-bottom: 1rem;
     letter-spacing: -0.02em;
 }
 .as-section-head {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.10em;
     text-transform: uppercase;
-    color: var(--c-text-3);
-    padding-bottom: 0.55rem;
-    border-bottom: 1px solid var(--c-border);
+    color: var(--c-text-2);
+    padding: 0 0 0.55rem 0.75rem;
+    border-left: 2px solid var(--c-blue);
+    border-bottom: 1px solid var(--c-border-2);
     margin-bottom: 0.9rem;
     margin-top: 1.5rem;
 }
@@ -715,20 +732,39 @@ button[data-baseweb="tab"][aria-selected="true"] {
     vertical-align: middle;
 }
 
+/* ── TAB BAR — scrollable on small screens ───────────────────── */
+[data-testid="stTabs"] [role="tablist"] {
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+}
+[data-testid="stTabs"] [role="tablist"]::-webkit-scrollbar { display: none; }
+
+/* ── PLOTLY CHART CONTAINER — ensure dark bg ─────────────────── */
+.stPlotlyChart, [data-testid="stPlotlyChart"] {
+    background: transparent !important;
+}
+.stPlotlyChart > div, [data-testid="stPlotlyChart"] > div {
+    background: transparent !important;
+}
+.js-plotly-plot .plotly .bg { fill: transparent !important; }
+
 /* ── DOWNLOAD / PRIMARY / SECONDARY BUTTONS ─────────────────── */
 [data-testid="stDownloadButton"] button {
-    background: var(--c-blue) !important;
-    color: #fff !important;
-    border: none !important;
+    background: transparent !important;
+    color: var(--c-text-2) !important;
+    border: 1px solid var(--c-border-2) !important;
     border-radius: var(--radius-sm) !important;
-    font-weight: 600 !important;
+    font-weight: 500 !important;
     font-size: 13px !important;
     box-shadow: none !important;
-    transition: background .2s, transform .15s !important;
+    transition: border-color .2s, color .2s, background .2s !important;
 }
 [data-testid="stDownloadButton"] button:hover {
-    background: #1d4ed8 !important;
-    transform: translateY(-1px) !important;
+    background: var(--c-surface-2) !important;
+    border-color: var(--c-blue) !important;
+    color: var(--c-text) !important;
 }
 [data-testid="stBaseButton-primary"] button,
 .stButton button[kind="primary"] {
@@ -793,8 +829,31 @@ div[data-testid="stMetric"] [data-testid="stMetricDelta"] { color: var(--c-text-
 }
 [data-testid="stSelectbox"] select,
 [data-testid="stSelectbox"] > div > div {
+    background: var(--c-surface-2) !important;
+    border: 1px solid var(--c-border-2) !important;
+    color: var(--c-text) !important;
+    border-radius: var(--radius-sm) !important;
+}
+[data-testid="stSelectbox"] > div > div:focus-within,
+[data-testid="stSelectbox"] > div > div:hover {
+    border-color: var(--c-blue) !important;
+}
+/* Dropdown list */
+[data-testid="stSelectbox"] ul,
+[data-baseweb="popover"] ul,
+[data-baseweb="menu"] {
     background: var(--c-surface) !important;
-    border-color: var(--c-border-2) !important;
+    border: 1px solid var(--c-border-2) !important;
+    border-radius: var(--radius-sm) !important;
+}
+[data-baseweb="menu"] li,
+[data-baseweb="option"] {
+    background: transparent !important;
+    color: var(--c-text-2) !important;
+}
+[data-baseweb="menu"] li:hover,
+[data-baseweb="option"]:hover {
+    background: var(--c-blue-dim) !important;
     color: var(--c-text) !important;
 }
 [data-testid="stSlider"] > div > div > div { background: var(--c-blue) !important; }
@@ -1060,6 +1119,94 @@ div[data-testid="stMetric"] [data-testid="stMetricDelta"] { color: var(--c-text-
 }
 
 /* ── EMPTY STATE ─────────────────────────────────────────────── */
+/* ── HERO LANDING PAGE ───────────────────────────────────────── */
+.as-hero {
+    max-width: 680px;
+    margin: 2.5rem auto 2rem;
+    text-align: center;
+    padding: 0 1rem;
+}
+.as-hero-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--c-blue-lt);
+    background: var(--c-blue-dim);
+    border: 1px solid rgba(59,130,246,0.25);
+    border-radius: 20px;
+    padding: 5px 14px;
+    margin-bottom: 1.5rem;
+}
+.as-hero-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.15;
+    color: var(--c-text);
+    margin: 0 0 1rem;
+}
+.as-hero-title .hl { color: var(--c-blue-lt); }
+.as-hero-sub {
+    font-size: 14px;
+    color: var(--c-text-2);
+    line-height: 1.75;
+    margin-bottom: 2.5rem;
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.as-hero-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+    text-align: left;
+}
+.as-hero-kpi {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius);
+    padding: 1.1rem 1.2rem;
+    box-shadow: var(--shadow);
+}
+.as-hero-kpi-icon { font-size: 18px; margin-bottom: 10px; }
+.as-hero-kpi-val {
+    font-size: 1.55rem;
+    font-weight: 700;
+    font-family: var(--c-mono);
+    letter-spacing: -0.02em;
+    color: var(--c-blue-lt);
+    line-height: 1;
+    margin-bottom: 4px;
+}
+.as-hero-kpi-lab { font-size: 11px; color: var(--c-text-3); font-weight: 500; line-height: 1.4; }
+.as-hero-banks {
+    display: flex;
+    justify-content: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+}
+.as-hero-bank-tag {
+    background: var(--c-surface-2);
+    border: 1px solid var(--c-border);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--c-text-3);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.as-hero-note {
+    font-size: 11px;
+    color: var(--c-text-3);
+    margin-top: 1.5rem;
+}
+
+/* legacy selectors kept for empty-state fallback */
 .as-empty-state {
     display: flex;
     flex-direction: column;
@@ -1712,6 +1859,7 @@ def _compute_health_score(stats: dict, df: pd.DataFrame,
 
 
 def _gauge_fig(score: int) -> go.Figure:
+    _gc = "#ef4444" if score < 50 else ("#f59e0b" if score < 70 else "#10b981")
     fig = go.Figure(go.Indicator(
         mode="gauge",
         value=score,
@@ -1720,13 +1868,13 @@ def _gauge_fig(score: int) -> go.Figure:
             "axis": {"range": [0, 100], "tickvals": [0, 25, 50, 75, 100],
                      "tickfont": {"size": 9, "color": "#6B7280"},
                      "tickcolor": "rgba(255,255,255,0.1)"},
-            "bar": {"color": "#2563eb", "thickness": 0.28},
+            "bar": {"color": _gc, "thickness": 0.28},
             "bgcolor": "#1a2235",
             "borderwidth": 0,
             "steps": [
                 {"range": [0, 100], "color": "#1a2235"},
             ],
-            "threshold": {"line": {"color": "#2563eb", "width": 2},
+            "threshold": {"line": {"color": _gc, "width": 2},
                           "thickness": 0.75, "value": score},
         },
     ))
@@ -2008,15 +2156,46 @@ elif st.session_state.get("use_sample_flag"):
 # ---------------------------------------------------------------------------
 if file_source is None:
     st.markdown("""
-    <div class="as-empty-state">
-        <div class="as-empty-line"></div>
-        <div class="as-empty-title">No financial data loaded</div>
-        <div class="as-empty-sub">Upload a CSV or PDF bank statement, or load sample data to begin</div>
+    <div class="as-hero">
+        <div class="as-hero-badge">NLP &middot; Anomaly Detection &middot; Prophet Forecast &middot; Gemini AI</div>
+        <h1 class="as-hero-title">Your bank statement,<br><span class="hl">decoded in seconds.</span></h1>
+        <p class="as-hero-sub">
+            Upload any Indian bank CSV or PDF and get instant spend categorization,
+            anomaly alerts, next-month forecasts, and personalized AI advice —
+            zero setup, fully local, privacy-first.
+        </p>
+        <div class="as-hero-kpis">
+            <div class="as-hero-kpi">
+                <div class="as-hero-kpi-icon">🧠</div>
+                <div class="as-hero-kpi-val">10+</div>
+                <div class="as-hero-kpi-lab">Spending categories auto-classified</div>
+            </div>
+            <div class="as-hero-kpi">
+                <div class="as-hero-kpi-icon">⚡</div>
+                <div class="as-hero-kpi-val">&lt;30s</div>
+                <div class="as-hero-kpi-lab">Full ML pipeline runtime</div>
+            </div>
+            <div class="as-hero-kpi">
+                <div class="as-hero-kpi-icon">🔒</div>
+                <div class="as-hero-kpi-val">100%</div>
+                <div class="as-hero-kpi-lab">Local — no data leaves your device</div>
+            </div>
+        </div>
+        <div class="as-hero-banks">
+            <span class="as-hero-bank-tag">SBI</span>
+            <span class="as-hero-bank-tag">HDFC</span>
+            <span class="as-hero-bank-tag">ICICI</span>
+            <span class="as-hero-bank-tag">Kotak</span>
+            <span class="as-hero-bank-tag">Axis</span>
+            <span class="as-hero-bank-tag">GPay</span>
+            <span class="as-hero-bank-tag">+ any CSV</span>
+        </div>
+        <p class="as-hero-note">No login required &middot; Try instantly with the sample dataset below</p>
     </div>
     """, unsafe_allow_html=True)
     _empty_col = st.columns([1, 2, 1])[1]
     with _empty_col:
-        if st.button("Load Sample Data", use_container_width=True, type="primary"):
+        if st.button("▶  Try with Sample Data", use_container_width=True, type="primary"):
             st.session_state["use_sample_flag"] = True
             st.session_state["analysis_confirmed"] = True
             st.rerun()
@@ -2166,6 +2345,12 @@ if not st.session_state.get("analysis_confirmed"):
             _disp[_nc] = _disp[_nc].apply(
                 lambda x: f"₹{x:,.2f}" if pd.notna(x) and x != 0 else ""
             )
+    _preview_rename = {
+        "date": "Date", "description": "Description",
+        "debit": "Debit", "credit": "Credit",
+        "balance": "Balance", "transaction_type": "Type",
+    }
+    _disp.columns = [_preview_rename.get(c, c.replace("_", " ").title()) for c in _disp.columns]
     st.markdown(_html_table(_disp), unsafe_allow_html=True)
 
     _col_confirm, _col_cancel = st.columns([1, 4])
@@ -2595,7 +2780,14 @@ with tab_cat:
                     unsafe_allow_html=True)
         budgets = st.session_state.get("budgets", {})
         if not budgets:
-            st.caption("Set monthly budget limits in the sidebar to see progress bars.")
+            st.markdown(
+                '<div style="background:var(--c-surface-2);border:1px dashed var(--c-border-2);'
+                'border-radius:var(--radius);padding:1.25rem 1.5rem;color:var(--c-text-3);'
+                'font-size:13px;text-align:center;margin-top:0.5rem;">'
+                '💡 Open <strong style="color:var(--c-text-2)">Budget Limits</strong> in the '
+                'sidebar to set monthly targets and track your spend here.</div>',
+                unsafe_allow_html=True,
+            )
         else:
             # Determine "current month" as the most recent month in the data
             _cur_month = df["date"].max().to_period("M") if not df.empty else None
