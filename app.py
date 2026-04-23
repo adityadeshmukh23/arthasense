@@ -948,6 +948,28 @@ div[data-testid="stMetric"] [data-testid="stMetricDelta"] { color: var(--c-text-
     color: var(--c-text) !important;
 }
 
+/* ── STATUS / SPINNER ────────────────────────────────────────── */
+[data-testid="stStatus"],
+[data-testid="stStatusWidget"],
+[data-testid="stStatus"] > div,
+[data-testid="stStatusWidget"] > div {
+    background: var(--c-surface) !important;
+    border: 1px solid var(--c-border) !important;
+    border-radius: var(--radius) !important;
+    color: var(--c-text) !important;
+}
+[data-testid="stStatus"] p,
+[data-testid="stStatus"] span,
+[data-testid="stStatus"] div,
+[data-testid="stStatusWidget"] p,
+[data-testid="stStatusWidget"] span {
+    color: var(--c-text) !important;
+}
+[data-testid="stStatus"] [data-testid="stMarkdownContainer"] p {
+    color: var(--c-text-2) !important;
+    font-size: 13px !important;
+}
+
 /* ── DATAFRAMES ──────────────────────────────────────────────── */
 [data-testid="stDataFrame"] {
     border-radius: var(--radius);
