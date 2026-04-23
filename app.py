@@ -137,7 +137,7 @@ html, body, [data-testid="stApp"] {
 }
 [data-testid="stSidebar"] > div:first-child {
     background: transparent !important;
-    padding-top: 1.75rem;
+    padding-top: 0.5rem;
 }
 [data-testid="stSidebarContent"] {
     background: transparent !important;
@@ -805,27 +805,41 @@ div[data-testid="stMetric"] [data-testid="stMetricDelta"] { color: var(--c-text-
     border-radius: var(--radius) !important;
 }
 /* Sidebar expanders — accordion style (no card box) */
-[data-testid="stSidebar"] [data-testid="stExpander"] {
+[data-testid="stSidebar"] [data-testid="stExpander"],
+[data-testid="stSidebar"] [data-testid="stExpander"] details,
+[data-testid="stSidebar"] [data-testid="stExpander"] > div,
+[data-testid="stSidebar"] [data-testid="stExpanderDetails"] {
     background: transparent !important;
     border: none !important;
     border-bottom: 1px solid var(--c-border) !important;
     border-radius: 0 !important;
     margin-bottom: 0 !important;
 }
-[data-testid="stSidebar"] [data-testid="stExpander"] summary {
+[data-testid="stSidebar"] [data-testid="stExpander"] summary,
+[data-testid="stSidebar"] [data-testid="stExpander"] details summary,
+[data-testid="stSidebar"] [data-testid="stExpander"] button[kind="header"] {
+    background: transparent !important;
     padding: 9px 8px !important;
     font-size: 13px !important;
     font-weight: 500 !important;
     color: var(--c-text-2) !important;
     border-radius: var(--radius-sm) !important;
 }
-[data-testid="stSidebar"] [data-testid="stExpander"] summary:hover {
+[data-testid="stSidebar"] [data-testid="stExpander"] summary:hover,
+[data-testid="stSidebar"] [data-testid="stExpander"] button[kind="header"]:hover {
     background: rgba(255,255,255,0.04) !important;
     color: var(--c-text) !important;
 }
-[data-testid="stSidebar"] [data-testid="stExpander"] summary svg {
+[data-testid="stSidebar"] [data-testid="stExpander"] summary svg,
+[data-testid="stSidebar"] [data-testid="stExpander"] button[kind="header"] svg {
     color: var(--c-text-3) !important;
 }
+/* Streamlit 1.35+ uses a div-based expander header */
+[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stExpanderToggleIcon"] {
+    color: var(--c-text-3) !important;
+}
+[data-testid="stSidebar"] details { background: transparent !important; }
+[data-testid="stSidebar"] details summary { background: transparent !important; color: var(--c-text-2) !important; }
 
 /* File uploader — dashed upload zone style */
 [data-testid="stFileUploader"] {
@@ -1450,6 +1464,28 @@ with st.sidebar:
 # Helpers
 # ---------------------------------------------------------------------------
 SAMPLE_CSV_PATH = Path(__file__).parent / "data" / "sample_transactions.csv"
+
+
+def _html_table(df: "pd.DataFrame", right_cols: list = None) -> str:
+    """Render a dataframe as a dark-themed .tx-table HTML string."""
+    right_cols = right_cols or []
+    cols = list(df.columns)
+    rows = [
+        '<div class="tx-table-wrap"><table class="tx-table"><thead><tr>'
+    ]
+    for c in cols:
+        align = ' style="text-align:right"' if c in right_cols else ''
+        rows.append(f'<th{align}>{html.escape(str(c))}</th>')
+    rows.append('</tr></thead><tbody>')
+    for _, row in df.iterrows():
+        rows.append('<tr>')
+        for c in cols:
+            val = str(row[c]) if row[c] is not None else ''
+            align = ' style="text-align:right"' if c in right_cols else ''
+            rows.append(f'<td{align}>{html.escape(val)}</td>')
+        rows.append('</tr>')
+    rows.append('</tbody></table></div>')
+    return ''.join(rows)
 
 
 def _file_hash(f) -> str:
@@ -2447,7 +2483,8 @@ with tab_cat:
         disp["pct"]         = disp["pct"].astype(str) + "%"
         disp.columns        = ["Category", "Total Spent", "% of Total",
                                 "Transactions", "Avg Transaction"]
-        st.dataframe(disp, use_container_width=True, hide_index=True)
+        st.markdown(_html_table(disp, right_cols=["Total Spent", "% of Total", "Transactions", "Avg Transaction"]),
+                    unsafe_allow_html=True)
 
         # ── Budget vs Actual ──────────────────────────────────────────────
         st.markdown('<div class="as-section-head">Budget vs Actual</div>',
@@ -2635,7 +2672,8 @@ with tab_cat:
                 "Merchant", "Occurrences", "Avg Amount",
                 "Total Spent", "Months Active", "Subscription",
             ]
-            st.dataframe(recur_disp, use_container_width=True, hide_index=True)
+            st.markdown(_html_table(recur_disp, right_cols=["Occurrences", "Avg Amount", "Total Spent", "Months Active"]),
+                        unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # TAB 2 — Anomalies (alert card grid)
@@ -2735,7 +2773,8 @@ with tab_anom:
             tbl["anomaly_score"] = tbl["anomaly_score"].round(3)
             tbl.columns = ["Date", "Description", "Amount", "Category",
                            "Score", "Reason"]
-            st.dataframe(tbl, use_container_width=True, hide_index=True)
+            st.markdown(_html_table(tbl, right_cols=["Amount", "Score"]),
+                        unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # TAB 3 — Forecast
