@@ -1341,7 +1341,11 @@ with st.sidebar:
         # Once seeded, user edits are preserved because Streamlit manages
         # session_state[widget_key] as widget state across reruns.
         if _budget_actuals and st.session_state.get("_budgets_for_key") != _budget_data_key:
-            if st.session_state.get("budgets"):
+            _existing_budgets = st.session_state.get("budgets", {})
+            _user_has_budgets = bool(_existing_budgets) and any(
+                v > 0 for v in _existing_budgets.values()
+            )
+            if _user_has_budgets:
                 st.warning("Re-uploading will clear your budget settings. Continue?")
                 if not st.button("Yes, clear budgets and re-upload", key="confirm_budget_reset"):
                     st.stop()
