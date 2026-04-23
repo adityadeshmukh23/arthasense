@@ -741,6 +741,30 @@ div[data-testid="stMetric"] [data-testid="stMetricDelta"] { color: var(--c-text-
     border-radius: var(--radius) !important;
 }
 
+/* ── WIDGET LABELS (radio, number, text, checkbox, select) ───── */
+[data-testid="stWidgetLabel"] p,
+[data-testid="stWidgetLabel"] label,
+[data-testid="stWidgetLabel"] span {
+    color: var(--c-text) !important;
+}
+[data-testid="stRadio"] label,
+[data-testid="stRadio"] span[data-testid="stMarkdownContainer"] p {
+    color: var(--c-text) !important;
+}
+[data-testid="stNumberInput"] label,
+[data-testid="stNumberInput"] p {
+    color: var(--c-text) !important;
+}
+[data-testid="stCheckbox"] label,
+[data-testid="stCheckbox"] span {
+    color: var(--c-text) !important;
+}
+[data-testid="stSelectbox"] label,
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] label {
+    color: var(--c-text) !important;
+}
+
 /* ── DATAFRAMES ──────────────────────────────────────────────── */
 [data-testid="stDataFrame"] {
     border-radius: var(--radius);
