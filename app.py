@@ -3110,12 +3110,7 @@ with tab_ai:
 # ═══════════════════════════════════════════════════════════════════════════
 with tab_txn:
     # ── Search + type filter ─────────────────────────────────────────────
-    _txn_search = st.text_input(
-        "Search transactions",
-        placeholder="🔍  Search by description or category…",
-        label_visibility="collapsed",
-        key="txn_search",
-    )
+    _txn_search = ""
 
     _type_options = ["All", "Debits", "Credits", "⚠ Anomalies"]
     if "txn_type_filter" not in st.session_state:
