@@ -382,41 +382,41 @@ html, body, [data-testid="stApp"] {
 .as-chip.primary .as-chip-icon { background: var(--c-blue);  color: #fff; }
 .as-chip.warning .as-chip-icon { background: var(--c-amber); color: #fff; }
 
-/* ── TABS ────────────────────────────────────────────────────── */
+/* ── TABS — underline style matching design ──────────────────── */
 [data-baseweb="tab-list"] {
-    background: var(--c-surface) !important;
-    border-radius: var(--radius) !important;
-    padding: 4px !important;
-    border: 1px solid var(--c-border) !important;
-    gap: 2px !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-bottom: 1px solid var(--c-border) !important;
+    gap: 0 !important;
 }
 button[data-baseweb="tab"] {
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.08em !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.06em !important;
     text-transform: uppercase !important;
-    padding: 9px 16px !important;
+    padding: 14px 18px !important;
     color: var(--c-text-3) !important;
-    border-radius: var(--radius-sm) !important;
-    transition: all .2s ease !important;
+    border-radius: 0 !important;
+    border-bottom: 2px solid transparent !important;
+    margin-bottom: -1px !important;
+    background: transparent !important;
+    transition: color .2s !important;
     font-family: var(--c-sans) !important;
 }
 button[data-baseweb="tab"]:hover {
     color: var(--c-text-2) !important;
-    background: rgba(255,255,255,0.05) !important;
+    background: transparent !important;
 }
 button[data-baseweb="tab"][aria-selected="true"] {
     color: var(--c-blue-lt) !important;
-    background: var(--c-blue-dim) !important;
+    background: transparent !important;
+    border-bottom-color: var(--c-blue) !important;
     box-shadow: none !important;
 }
-[data-baseweb="tab-highlight"] {
-    background: var(--c-blue) !important;
-    height: 2px !important;
-    border-radius: 2px !important;
-    box-shadow: none !important;
-}
-[data-baseweb="tab-border"] { background: var(--c-border) !important; }
+[data-baseweb="tab-highlight"] { display: none !important; }
+[data-baseweb="tab-border"] { display: none !important; }
 
 /* ── ANOMALY ALERT CARDS ─────────────────────────────────────── */
 .as-alert-grid {
@@ -735,11 +735,73 @@ div[data-testid="stMetric"] [data-testid="stMetricDelta"] { color: var(--c-text-
     color: var(--c-text) !important;
 }
 [data-testid="stSlider"] > div > div > div { background: var(--c-blue) !important; }
+/* Expanders in main content keep card style */
 [data-testid="stExpander"] {
     background: var(--c-surface) !important;
     border: 1px solid var(--c-border) !important;
     border-radius: var(--radius) !important;
 }
+/* Sidebar expanders — accordion style (no card box) */
+[data-testid="stSidebar"] [data-testid="stExpander"] {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid var(--c-border) !important;
+    border-radius: 0 !important;
+    margin-bottom: 0 !important;
+}
+[data-testid="stSidebar"] [data-testid="stExpander"] summary {
+    padding: 9px 8px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: var(--c-text-2) !important;
+    border-radius: var(--radius-sm) !important;
+}
+[data-testid="stSidebar"] [data-testid="stExpander"] summary:hover {
+    background: rgba(255,255,255,0.04) !important;
+    color: var(--c-text) !important;
+}
+[data-testid="stSidebar"] [data-testid="stExpander"] summary svg {
+    color: var(--c-text-3) !important;
+}
+
+/* File uploader — dashed upload zone style */
+[data-testid="stFileUploader"] {
+    border: 2px dashed rgba(37,99,235,0.35) !important;
+    border-radius: var(--radius-sm) !important;
+    background: transparent !important;
+    transition: border-color .2s, background .2s !important;
+    padding: 4px 8px !important;
+}
+[data-testid="stFileUploader"]:hover {
+    border-color: var(--c-blue) !important;
+    background: var(--c-blue-dim) !important;
+}
+[data-testid="stFileUploaderDropzone"] {
+    background: transparent !important;
+    border: none !important;
+}
+[data-testid="stFileUploaderDropzoneInstructions"] p,
+[data-testid="stFileUploaderDropzoneInstructions"] span {
+    color: var(--c-text-2) !important;
+    font-size: 12px !important;
+}
+[data-testid="stFileUploaderDropzoneInstructions"] small {
+    color: var(--c-text-3) !important;
+    font-size: 11px !important;
+}
+
+/* Sidebar footer */
+.as-sidebar-footer {
+    padding: 1rem 0.5rem 0.75rem;
+    border-top: 1px solid var(--c-border);
+    margin-top: 1rem;
+}
+.as-sidebar-footer p {
+    font-size: 11px !important;
+    color: var(--c-text-3) !important;
+    line-height: 1.6;
+}
+.as-sidebar-footer span { color: var(--c-blue-lt) !important; font-weight: 500; }
 
 /* ── WIDGET LABELS (radio, number, text, checkbox, select) ───── */
 [data-testid="stWidgetLabel"] p,
@@ -1011,10 +1073,10 @@ def _base_layout(title: str = "", height: int | None = None) -> dict:
 # ---------------------------------------------------------------------------
 with st.sidebar:
     st.markdown("""
-    <div style="padding: 0.25rem 0 1.5rem 0;">
+    <div style="padding: 0.25rem 0 1.25rem 0; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 1.25rem;">
         <div class="as-wordmark"><span class="as-wordmark-accent">Artha</span>Sense</div>
+        <div style="font-size:11px;color:var(--c-text-3);letter-spacing:0.06em;text-transform:uppercase;margin-top:4px;">Finance Intelligence</div>
     </div>
-    <div class="as-sidebar-divider"></div>
     """, unsafe_allow_html=True)
 
     uploaded_file = st.file_uploader(
@@ -1154,11 +1216,34 @@ with st.sidebar:
     st.markdown('<div class="as-sidebar-divider"></div>', unsafe_allow_html=True)
     with st.expander("About", expanded=False):
         st.markdown(
-            '<p style="font-size:12px;color:#6B7280;line-height:1.7;">'
-            "ArthaSense — end-to-end ML pipeline for Indian bank statement analysis. "
-            "NLP classification (BART-MNLI), anomaly detection (Isolation Forest), "
-            "forecasting (Prophet/ARIMA), and AI advice (Gemini)."
+            '<p style="font-size:11px;color:var(--c-text-3);line-height:1.7;padding:4px 8px;">'
+            'ArthaSense — ML pipeline for Indian bank statement analysis. '
+            '<span style="color:var(--c-blue-lt);">NLP</span> classification, '
+            '<span style="color:var(--c-blue-lt);">Isolation Forest</span> anomaly detection, '
+            '<span style="color:var(--c-blue-lt);">Prophet/ARIMA</span> forecasting, '
+            '<span style="color:var(--c-blue-lt);">Gemini</span> advice.'
             "</p>",
+            unsafe_allow_html=True,
+        )
+
+    # Sidebar footer
+    _sf_df = st.session_state.get("df")
+    _sf_source = st.session_state.get("file_source", "")
+    if _sf_df is not None and not _sf_df.empty and "date" in _sf_df.columns:
+        _sf_n = len(_sf_df)
+        _sf_min = _sf_df["date"].min().strftime("%b %Y")
+        _sf_max = _sf_df["date"].max().strftime("%b %Y")
+        _is_sample = st.session_state.get("use_sample_flag", False)
+        _sf_label = "Sample Dataset" if _is_sample else "Loaded Dataset"
+        st.markdown(
+            f'<div class="as-sidebar-footer"><p>v2.0 · {_sf_label}<br>'
+            f'{_sf_min} – {_sf_max} · {_sf_n:,} transactions</p></div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            '<div class="as-sidebar-footer"><p>v2.0 · ArthaSense<br>'
+            'Upload a statement to begin</p></div>',
             unsafe_allow_html=True,
         )
 
