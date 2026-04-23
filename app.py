@@ -866,6 +866,19 @@ div[data-testid="stMetric"] [data-testid="stMetricDelta"] { color: var(--c-text-
     color: var(--c-text-3) !important;
     font-size: 11px !important;
 }
+/* File uploader Browse button */
+[data-testid="stFileUploaderDropzone"] button,
+[data-testid="stFileUploader"] button {
+    background: var(--c-surface-2) !important;
+    color: var(--c-text) !important;
+    border: 1px solid var(--c-border) !important;
+    border-radius: var(--radius-sm) !important;
+}
+[data-testid="stFileUploader"] button span,
+[data-testid="stFileUploader"] button p,
+[data-testid="stFileUploaderDropzone"] button span {
+    color: var(--c-text) !important;
+}
 
 /* Sidebar footer */
 .as-sidebar-footer {
@@ -893,6 +906,37 @@ div[data-testid="stMetric"] [data-testid="stMetricDelta"] { color: var(--c-text-
 [data-testid="stNumberInput"] label,
 [data-testid="stNumberInput"] p {
     color: var(--c-text) !important;
+}
+[data-testid="stNumberInput"] input {
+    background: var(--c-surface-2) !important;
+    color: var(--c-text) !important;
+    border: 1px solid var(--c-border) !important;
+    border-radius: var(--radius-sm) !important;
+}
+[data-testid="stNumberInput"] > div {
+    background: var(--c-surface-2) !important;
+    border: 1px solid var(--c-border) !important;
+    border-radius: var(--radius-sm) !important;
+}
+[data-testid="stNumberInput"] button {
+    background: var(--c-surface-2) !important;
+    color: var(--c-text-2) !important;
+    border: none !important;
+}
+[data-testid="stNumberInput"] button:hover {
+    background: var(--c-blue-dim) !important;
+    color: var(--c-blue-lt) !important;
+}
+[data-testid="stTextInput"] input {
+    background: var(--c-surface-2) !important;
+    color: var(--c-text) !important;
+    border: 1px solid var(--c-border) !important;
+    border-radius: var(--radius-sm) !important;
+}
+[data-testid="stTextInput"] > div {
+    background: var(--c-surface-2) !important;
+    border: 1px solid var(--c-border) !important;
+    border-radius: var(--radius-sm) !important;
 }
 [data-testid="stCheckbox"] label,
 [data-testid="stCheckbox"] span {
@@ -1313,6 +1357,8 @@ with st.sidebar:
             value=False,
             help="Use DistilBART-MNLI for classification. More accurate than rule-based.",
         )
+        if use_zero_shot:
+            st.caption("First-run downloads ~600 MB model — takes 1–2 min.")
         enable_gemini = st.toggle(
             "Gemini AI Advisor",
             value=False,
@@ -1480,7 +1526,7 @@ def _html_table(df: "pd.DataFrame", right_cols: list = None) -> str:
     for _, row in df.iterrows():
         rows.append('<tr>')
         for c in cols:
-            val = str(row[c]) if row[c] is not None else ''
+            val = '' if (row[c] is None or (hasattr(row[c], '__float__') and pd.isna(row[c]))) else str(row[c])
             align = ' style="text-align:right"' if c in right_cols else ''
             rows.append(f'<td{align}>{html.escape(val)}</td>')
         rows.append('</tr>')
@@ -2062,7 +2108,12 @@ if not st.session_state.get("analysis_confirmed"):
     _disp = _pv[_show_cols].head(12).copy()
     if "date" in _disp.columns:
         _disp["date"] = _disp["date"].dt.strftime("%d %b %Y")
-    st.dataframe(_disp, use_container_width=True, hide_index=True)
+    for _nc in ["debit", "credit", "balance"]:
+        if _nc in _disp.columns:
+            _disp[_nc] = _disp[_nc].apply(
+                lambda x: f"₹{x:,.2f}" if pd.notna(x) and x != 0 else ""
+            )
+    st.markdown(_html_table(_disp), unsafe_allow_html=True)
 
     _col_confirm, _col_cancel = st.columns([1, 4])
     with _col_confirm:
