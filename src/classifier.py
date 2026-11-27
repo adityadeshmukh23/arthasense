@@ -19,6 +19,7 @@ Output columns added to DataFrame:
 from __future__ import annotations
 
 import logging
+import os
 import re
 from typing import Callable, Optional
 
@@ -586,7 +587,10 @@ class TransactionClassifier:
         df["match_confidence"] = result_df["match_confidence"].values
         df["match_notes"] = result_df["match_notes"].values
 
-        self._print_validation_report(df, desc_col, type_col, amt_col)
+        # The report prints transaction descriptions, so it is off unless a
+        # developer opts in. It must never run on a shared server by default.
+        if os.getenv("ARTHASENSE_DEBUG_REPORT") == "1":
+            self._print_validation_report(df, desc_col, type_col, amt_col)
 
         logger.info(
             "Classified %d transactions. Distribution: %s",

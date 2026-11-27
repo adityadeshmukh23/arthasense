@@ -506,7 +506,7 @@ class BankStatementPreprocessor:
             raw = self.load_csv(source)
             return self.clean(raw)
 
-    def clean(self, df: Optional[pd.DataFrame] = None) -> pd.DataFrame:
+    def clean(self, df: Optional[pd.DataFrame] = None, dedupe: bool = True) -> pd.DataFrame:
         """
         Clean and standardize a raw bank statement DataFrame.
 
@@ -535,7 +535,8 @@ class BankStatementPreprocessor:
         df = df.copy()
 
         # --- Step 1: Standardize column names ---
-        df.columns = [str(c).strip().lower() for c in df.columns]
+        # "Withdrawal Amt." / "Closing  Balance:" -> "withdrawal amt" / "closing balance"
+        df.columns = [re.sub(r"\s+", " ", str(c).strip().lower()).rstrip(".:").strip() for c in df.columns]
         logger.info("Original columns: %s", list(df.columns))
 
         rename_map: Dict[str, str] = {}
@@ -622,14 +623,18 @@ class BankStatementPreprocessor:
 
         # --- Step 6: Sort by date ascending ---
         if "date" in df.columns:
-            df.sort_values("date", ascending=True, inplace=True)
+            # Newest-first statements: flip so same-day rows end up in
+            # chronological order after the (stable) sort below.
+            if len(df) > 1 and df["date"].iloc[0] > df["date"].iloc[-1]:
+                df = df.iloc[::-1]
+            df = df.sort_values("date", ascending=True, kind="mergesort")
 
         # --- Step 7: Drop duplicates ---
         dedup_cols = []
         for c in ["date", "description", "debit", "credit"]:
             if c in df.columns:
                 dedup_cols.append(c)
-        if dedup_cols:
+        if dedup_cols and dedupe:
             before = len(df)
             df.drop_duplicates(subset=dedup_cols, keep="first", inplace=True)
             dropped = before - len(df)

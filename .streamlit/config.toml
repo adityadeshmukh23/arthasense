@@ -4,10 +4,14 @@ enableXsrfProtection = true
 # Keep in sync with _MAX_UPLOAD_MB in app.py
 maxUploadSize = 10
 
+[browser]
+# Don't send usage telemetry from users' browsers to Streamlit
+gatherUsageStats = false
+
 [theme]
 base = "light"
-primaryColor = "#2563EB"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F1F5F9"
-textColor = "#0F172A"
+primaryColor = "#0F766E"
+backgroundColor = "#FBFBF9"
+secondaryBackgroundColor = "#F3F6F4"
+textColor = "#1C2421"
 font = "sans serif"
