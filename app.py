@@ -30,7 +30,7 @@ st.set_page_config(page_title="ArthaSense — safe to spend", layout="centered",
 
 st.markdown("""
 <style>
-:root { --accent:#0F766E; --ink:#1C2421; --muted:#5B6661; --line:#E3E7E4; --soft:#F3F6F4; --warn:#9A3412; }
+:root { --accent:#2DD4BF; --ink:#E6EDEA; --muted:#A3B1AC; --line:#2B3834; --soft:#19221F; --card:#141C19; --warn:#FDBA74; }
 html, body, [class*="css"] { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
 [data-testid="stSidebar"], [data-testid="collapsedControl"] { display:none; }
 .block-container { max-width: 680px; padding-top: 3.5rem; padding-bottom: 4rem; }
@@ -39,7 +39,7 @@ h2, h3 { color: var(--ink); }
 .as-brand { font-size: .85rem; font-weight: 600; color: var(--accent); letter-spacing:.02em; }
 .as-step { font-size: .8rem; color: var(--muted); margin: .2rem 0 .4rem; }
 .as-lead { font-size: 1.05rem; color: var(--muted); line-height: 1.55; }
-.as-card { border:1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; background:#fff; margin: .6rem 0; }
+.as-card { border:1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; background: var(--card); margin: .6rem 0; }
 .as-soft { background: var(--soft); border-color: var(--soft); }
 .as-label { font-size: .8rem; color: var(--muted); text-transform: none; margin-bottom:.15rem; }
 .as-big { font-size: 2.4rem; font-weight: 700; color: var(--accent); line-height: 1.15; font-variant-numeric: tabular-nums; }
