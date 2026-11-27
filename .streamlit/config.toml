@@ -1,7 +1,8 @@
 [server]
 headless = true
-enableCORS = false
 enableXsrfProtection = true
+# Keep in sync with _MAX_UPLOAD_MB in app.py
+maxUploadSize = 10
 
 [theme]
 base = "light"

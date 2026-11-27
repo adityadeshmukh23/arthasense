@@ -954,7 +954,7 @@ def parse_gpay_text(raw_text: str) -> pd.DataFrame:
     if failed:
         logger.warning("GPay: %d lines matched date but not full tx pattern:", len(failed))
         for fl in failed[:5]:
-            logger.warning("  %r", fl)
+            logger.debug("  unmatched line of length %d", len(fl))  # content not logged
 
     # ── Step 3: Build DataFrame ────────────────────────────────────────────
     if not records:

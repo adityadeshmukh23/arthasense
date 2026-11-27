@@ -218,7 +218,7 @@ def _clean_amount_string(value: Any) -> Optional[float]:
     try:
         result = float(s)
     except (ValueError, TypeError):
-        logger.warning("Could not parse amount value: %r", value)
+        logger.warning("Could not parse an amount value (content not logged).")
         return None
 
     return result
@@ -258,7 +258,7 @@ def _parse_date(value: Any, formats: Optional[List[str]] = None) -> Optional[pd.
     try:
         return pd.to_datetime(s, dayfirst=True)
     except (ValueError, TypeError):
-        logger.warning("Could not parse date value: %r", value)
+        logger.warning("Could not parse a date value (content not logged).")
         return None
 
 

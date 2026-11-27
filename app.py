@@ -38,6 +38,15 @@ from src.recurring_detector import detect_recurring
 # ---------------------------------------------------------------------------
 load_dotenv()
 
+APP_VERSION = "3.0"
+# Keep in sync with server.maxUploadSize in .streamlit/config.toml
+_MAX_UPLOAD_MB = 10
+_UPLOAD_NOTICE = (
+    "Your file is read in memory by the server running this app (on the hosted "
+    "demo, Streamlit Community Cloud). It is not saved to disk or kept after your "
+    "session ends. Optional Gemini advice sends a summary to Google."
+)
+
 st.set_page_config(
     page_title="ArthaSense — Finance Intelligence",
     page_icon="\u20b9",
@@ -1571,11 +1580,11 @@ def _base_layout(title: str = "", height: int | None = None) -> dict:
 # Sidebar
 # ---------------------------------------------------------------------------
 with st.sidebar:
-    st.markdown("""
+    st.markdown(f"""
     <div style="padding: 0.25rem 0 1.25rem 0; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 1.25rem;">
         <div style="display:flex;align-items:center;justify-content:space-between;">
             <div class="as-wordmark"><span class="as-wordmark-accent">Artha</span>Sense</div>
-            <span class="as-kbd-badge" title="Upload: drag &amp; drop · Sample: click Load Sample">v3</span>
+            <span class="as-kbd-badge" title="Upload: drag &amp; drop · Sample: click Load Sample">v{APP_VERSION}</span>
         </div>
         <div style="font-size:11.5px;color:var(--c-text-3);letter-spacing:0.08em;text-transform:uppercase;margin-top:6px;">Finance Intelligence</div>
     </div>
@@ -1587,14 +1596,14 @@ with st.sidebar:
         help="Any bank statement — PDF, Excel (.xlsx/.xls), or CSV. Any bank or format.",
         label_visibility="collapsed",
     )
-    _MAX_UPLOAD_MB = 50
+    st.caption(_UPLOAD_NOTICE)
     if uploaded_file and uploaded_file.size > _MAX_UPLOAD_MB * 1024 * 1024:
         st.error(f"File too large — maximum is {_MAX_UPLOAD_MB} MB.")
         st.stop()
     use_sample = st.button(
         "Load Sample Data",
         use_container_width=True,
-        help="805-row synthetic dataset — Jan–Jun 2024.",
+        help="Synthetic data for a made-up salaried user, May–Nov 2026. Not a real person.",
     )
 
     st.markdown('<div class="as-sidebar-divider" style="margin-top:1.25rem;"></div>',
@@ -1605,24 +1614,35 @@ with st.sidebar:
         use_zero_shot = st.toggle(
             "Zero-shot NLP",
             value=False,
-            help="Use DistilBART-MNLI for classification. More accurate than rule-based.",
+            help="Optional. Uses the cross-encoder/nli-MiniLM2-L6-H768 model via transformers (must be installed). Default is rule-based.",
         )
         if use_zero_shot:
-            st.caption("First-run downloads ~600 MB model — takes 1–2 min.")
+            st.caption("First run downloads the model from Hugging Face. Your transactions are classified on the server, not sent to Hugging Face.")
         enable_gemini = st.toggle(
             "Gemini AI Advisor",
             value=False,
             help="Requires a valid API key below.",
         )
+        # The server-side key (st.secrets / env) is read here but NEVER placed
+        # in a widget value, so it is never serialised to the browser.
         try:
-            _gemini_default = st.secrets.get("GEMINI_API_KEY", os.getenv("GEMINI_API_KEY", ""))
+            _server_gemini_key = st.secrets.get("GEMINI_API_KEY", "") or os.getenv("GEMINI_API_KEY", "")
         except Exception:
-            _gemini_default = os.getenv("GEMINI_API_KEY", "")
-        gemini_key = st.text_input(
-            "Gemini API Key",
+            _server_gemini_key = os.getenv("GEMINI_API_KEY", "")
+        _user_gemini_key = st.text_input(
+            "Your Gemini API key (optional)",
             type="password",
-            value=_gemini_default,
+            value="",
+            placeholder="Paste your own key",
         )
+        gemini_key = (_user_gemini_key or "").strip() or (_server_gemini_key or "")
+        if enable_gemini:
+            st.caption(
+                "When on, a summary is sent to Google's Gemini API: totals per "
+                "category, forecasts, and up to 5 flagged transactions with "
+                "their descriptions and amounts."
+                + (" Using this app's server key." if not _user_gemini_key and _server_gemini_key else "")
+            )
     st.markdown('<div class="as-sidebar-divider"></div>', unsafe_allow_html=True)
     # ── Monthly Budget Limits ─────────────────────────────────────────────
     with st.expander("Budget Limits", expanded=False):
@@ -1725,8 +1745,8 @@ with st.sidebar:
     with st.expander("About", expanded=False):
         st.markdown(
             '<p style="font-size:11px;color:var(--c-text-3);line-height:1.7;padding:4px 8px;">'
-            'ArthaSense — ML pipeline for Indian bank statement analysis. '
-            '<span style="color:var(--c-blue-lt);">NLP</span> classification, '
+            'ArthaSense — Indian bank statement analysis. '
+            '<span style="color:var(--c-blue-lt);">Rule-based</span> classification (optional zero-shot model), '
             '<span style="color:var(--c-blue-lt);">Isolation Forest</span> anomaly detection, '
             '<span style="color:var(--c-blue-lt);">Prophet/ARIMA</span> forecasting, '
             '<span style="color:var(--c-blue-lt);">Gemini</span> advice.'
@@ -1744,13 +1764,13 @@ with st.sidebar:
         _is_sample = st.session_state.get("use_sample_flag", False)
         _sf_label = "Sample Dataset" if _is_sample else "Loaded Dataset"
         st.markdown(
-            f'<div class="as-sidebar-footer"><p>v2.0 · {_sf_label}<br>'
+            f'<div class="as-sidebar-footer"><p>v{APP_VERSION} · {_sf_label}<br>'
             f'{_sf_min} – {_sf_max} · {_sf_n:,} transactions</p></div>',
             unsafe_allow_html=True,
         )
     else:
         st.markdown(
-            '<div class="as-sidebar-footer"><p>v2.0 · ArthaSense<br>'
+            f'<div class="as-sidebar-footer"><p>v{APP_VERSION} · ArthaSense<br>'
             'Upload a statement to begin</p></div>',
             unsafe_allow_html=True,
         )
@@ -1793,12 +1813,12 @@ def _get_classifier(use_zs: bool) -> TransactionClassifier:
     return TransactionClassifier(use_zero_shot=use_zs)
 
 
-@st.cache_resource(show_spinner=False)
+# NOT cached with st.cache_resource: these objects are fitted on one user's
+# data, and cache_resource shares a single instance across all sessions.
 def _get_forecaster() -> SpendingForecaster:
     return SpendingForecaster()
 
 
-@st.cache_resource(show_spinner=False)
 def _get_anomaly_detector() -> AnomalyDetector:
     return AnomalyDetector(contamination=0.05)
 
@@ -2160,7 +2180,7 @@ def run_pipeline(df_clean: pd.DataFrame, cache_key: str, use_zs: bool) -> None:
             forecaster.fit_and_forecast(df)
         except Exception:
             logger.exception("Forecaster failed")
-            st.warning("Forecast unavailable — see logs for details.")
+            st.warning("Forecast unavailable for this statement.")
         forecast_summary = forecaster.get_forecast_summary()
         total_forecast   = forecaster.get_total_forecast()
 
@@ -2208,12 +2228,12 @@ elif st.session_state.get("use_sample_flag"):
 if file_source is None:
     st.markdown("""
     <div class="as-hero">
-        <div class="as-hero-badge">NLP &middot; Anomaly Detection &middot; Prophet Forecast &middot; Gemini AI</div>
+        <div class="as-hero-badge">Rule-based categories &middot; Anomaly Detection &middot; Forecast &middot; Optional Gemini</div>
         <h1 class="as-hero-title">Your bank statement,<br><span class="hl">decoded in seconds.</span></h1>
         <p class="as-hero-sub">
             Upload any Indian bank CSV or PDF and get instant spend categorization,
-            anomaly alerts, next-month forecasts, and personalized AI advice —
-            zero setup, fully local, privacy-first.
+            anomaly alerts and next-month forecasts. Your file is processed in memory
+            on the server running this app and is not stored after your session.
         </p>
         <div class="as-hero-kpis">
             <div class="as-hero-kpi">
@@ -2222,14 +2242,9 @@ if file_source is None:
                 <div class="as-hero-kpi-lab">Spending categories auto-classified</div>
             </div>
             <div class="as-hero-kpi">
-                <div class="as-hero-kpi-icon">⚡</div>
-                <div class="as-hero-kpi-val">&lt;30s</div>
-                <div class="as-hero-kpi-lab">Full ML pipeline runtime</div>
-            </div>
-            <div class="as-hero-kpi">
                 <div class="as-hero-kpi-icon">🔒</div>
-                <div class="as-hero-kpi-val">100%</div>
-                <div class="as-hero-kpi-lab">Local — no data leaves your device</div>
+                <div class="as-hero-kpi-val">0</div>
+                <div class="as-hero-kpi-lab">Files saved after your session</div>
             </div>
         </div>
         <div class="as-hero-banks">

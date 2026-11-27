@@ -1,142 +1,78 @@
-# ArthaSense — AI-Powered Personal Finance Intelligence
+# ArthaSense
 
-ArthaSense is a production-ready AI-powered personal finance intelligence system designed for Indian bank statement analysis. Upload a CSV bank statement from any major Indian bank (SBI, HDFC, ICICI, Kotak) and get instant insights through a 4-stage ML pipeline: zero-shot NLP transaction categorization, Isolation Forest anomaly detection, Prophet time-series forecasting, and Gemini AI-powered financial advice.
+ArthaSense is a Streamlit prototype that reads an Indian bank statement (CSV, Excel or text-based PDF) and shows where the money went: spending by category, recurring payments, unusual transactions and a simple next-month estimate. Optional Gemini advice can be turned on with an API key.
 
-The system processes raw bank transaction data and delivers a comprehensive Streamlit dashboard with categorized spending breakdowns, anomaly alerts for suspicious transactions, next-month spending forecasts per category, and a plain-English financial health report — all without requiring any labeled training data.
+It is a prototype, not a finished product. Version 3.0.
 
-## Architecture
+## How it works
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Streamlit Dashboard                    │
-│  ┌──────────┬──────────┬──────────┬──────────┬────────┐ │
-│  │Categories│Anomalies │ Forecast │AI Advice │ Table  │ │
-│  └────┬─────┴────┬─────┴────┬─────┴────┬─────┴────────┘ │
-│       │          │          │          │                  │
-│  ┌────▼────┐┌────▼────┐┌───▼────┐┌────▼─────┐          │
-│  │Zero-Shot││Isolation││Prophet ││ Gemini   │          │
-│  │  NLP    ││ Forest  ││Forecast││  API     │          │
-│  │(BART)   ││(sklearn)││        ││          │          │
-│  └────┬────┘└────┬────┘└───┬────┘└────┬─────┘          │
-│       └──────────┴─────────┴──────────┘                  │
-│                        │                                  │
-│              ┌─────────▼──────────┐                      │
-│              │   Preprocessor     │                      │
-│              │  (CSV Ingestion)   │                      │
-│              └─────────┬──────────┘                      │
-│                        │                                  │
-│              ┌─────────▼──────────┐                      │
-│              │  Bank Statement    │                      │
-│              │   CSV Upload       │                      │
-│              └────────────────────┘                      │
-└─────────────────────────────────────────────────────────┘
-```
+| Step | File | What it does |
+|------|------|--------------|
+| Parse | `src/convert_to_csv.py`, `src/preprocessor.py`, `src/pdf_parser.py`, `src/excel_parser.py` | Reads CSV, Excel (.xlsx/.xls) and text-based PDF statements. Handles DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD and DD MMM YYYY dates, ₹ symbols and lakh-style amounts. Scanned PDFs are rejected. |
+| Categorise | `src/classifier.py`, `src/merchant_categories.py` | **Rule-based by default**: merchant keyword rules, UPI handle extraction and person-name detection. An optional zero-shot mode (`cross-encoder/nli-MiniLM2-L6-H768` via `transformers`) can be switched on in Settings; it needs `transformers` and `torch` installed and downloads the model on first use. |
+| Recurring payments | `src/recurring_detector.py` | Finds merchants charged in two or more months with a consistent amount. |
+| Unusual transactions | `src/anomaly_detector.py` | scikit-learn Isolation Forest fitted on the statement's own debits. |
+| Estimate | `src/forecaster.py` | Prophet if installed, otherwise ARIMA (statsmodels), otherwise a simple average. |
+| Advice (optional) | `src/llm_advisor.py` | Gemini, only if switched on with a key. Otherwise a rule-based summary. Budgeting tips only; it is instructed not to recommend financial products. |
+| UI | `app.py` | Streamlit entry point. |
 
-## Live Demo
+## Where your data goes
 
-**[https://arthasense.streamlit.app](https://arthasense.streamlit.app)**
+- An uploaded file is read **in memory by the server running the app**. When you run it locally that is your own machine. On the hosted demo it is Streamlit Community Cloud's server, so the file does leave your device.
+- The app does not write uploads to disk and does not keep them after the session ends. Log messages contain counts, not transaction text.
+- If you turn on Gemini, the app sends Google's Gemini API a text summary: totals per category, summary statistics, forecasts, and up to 5 flagged transactions **with their descriptions and amounts**. Google's terms apply to that data.
+- A server-side `GEMINI_API_KEY` is used on the server only. It is never placed in a page widget or sent to the browser. Users can paste their own key instead.
 
-Upload any Indian bank statement CSV (SBI, HDFC, ICICI, Kotak) to try it instantly — no login required. Add your own [Gemini API key](https://aistudio.google.com/app/apikey) in the sidebar to enable AI advice.
+## Limits
 
----
+- Maximum upload size: **10 MB** (`server.maxUploadSize` in `.streamlit/config.toml`, checked again in `app.py`).
+- Scanned (image) PDFs are not supported.
+- Category rules are tuned for Indian merchants and will miss some.
 
-## Setup Instructions
+## Setup
 
 ```bash
-# Clone the repository
 git clone https://github.com/adityadeshmukh23/arthasense.git
 cd arthasense
-
-# Create virtual environment
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Install dependencies
+source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-
-# For CPU-only torch (saves ~2GB of disk space):
-pip install torch --index-url https://download.pytorch.org/whl/cpu
 ```
 
-## API Key Setup
+`transformers`, `torch` and `prophet` are only needed for the optional zero-shot mode and the Prophet forecast. The app runs without them.
 
-1. Copy the environment template:
-   ```bash
-   cp .env.example .env
-   ```
-
-2. (Optional) Add your Gemini API key to `.env`:
-   ```
-   GEMINI_API_KEY=your_actual_key_here
-   ```
-   Get a free key at: https://aistudio.google.com/app/apikey
-
-   The app works fully without a Gemini key — it falls back to rule-based analysis.
-
-## Running the App
+Optional Gemini key:
 
 ```bash
-# Generate sample data (optional — already included)
-python data/generate_sample_data.py
+cp .env.example .env              # then set GEMINI_API_KEY in .env
+```
 
-# Run the Streamlit app
+## Run
+
+```bash
 streamlit run app.py
 ```
 
-The app will open in your browser at `http://localhost:8501`.
+Opens at `http://localhost:8501`.
 
-## Running Tests
+## Sample data
+
+`data/sample_transactions.csv` is **synthetic**. It describes a made-up salaried person (₹58,400 salary on the 1st, ₹16,000 rent, a phone EMI, four subscriptions, everyday spending), 21 May – 20 Nov 2026, saving roughly 12–17% a month. Regenerate it with:
+
+```bash
+python data/generate_sample_data.py
+```
+
+The other files in `data/` (`sample_hdfc_statement.csv`, `sample_icici_statement.csv`, `sample_sbi_statement.csv`) are also synthetic and exist to test bank-specific parsing. Names and account numbers in them are invented.
+
+## Tests
 
 ```bash
 pytest tests/ -v
 ```
 
-## Module Descriptions
+## Deploy on Streamlit Community Cloud
 
-| Module | File | Description |
-|--------|------|-------------|
-| Preprocessor | `src/preprocessor.py` | CSV ingestion and cleaning for Indian bank formats. Handles multiple date formats, encodings, and amount styles (Indian lakh format). |
-| Classifier | `src/classifier.py` | Zero-shot NLP categorization using facebook/bart-large-mnli. Maps transactions to 10 spending categories with keyword fallback. |
-| Anomaly Detector | `src/anomaly_detector.py` | Isolation Forest anomaly detection trained on user spending patterns. Flags unusual amounts, duplicate charges, and unknown merchants. |
-| Forecaster | `src/forecaster.py` | Prophet time-series forecasting for next-month spending per category. Falls back to ARIMA or simple average if needed. |
-| LLM Advisor | `src/llm_advisor.py` | Gemini API integration for plain-English financial health reports. Falls back to rule-based analysis without an API key. |
-| Dashboard | `app.py` | Main Streamlit entry point with 5-tab dashboard: Categories, Anomalies, Forecast, AI Advice, and Transactions. |
-
-## Sample CSV Format
-
-The app accepts standard Indian bank CSV exports with these columns:
-
-```csv
-Date,Description,Debit,Credit,Balance
-01-01-2024,SALARY CREDIT,,50000.00,135000.00
-02-01-2024,SWIGGY ORDER #7823,450.00,,134550.00
-03-01-2024,UBER AUTO #1234,180.00,,134370.00
-05-01-2024,NETFLIX INDIA,649.00,,133721.00
-07-01-2024,ATM WITHDRAWAL,5000.00,,128721.00
-```
-
-Supported date formats: DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD, DD MMM YYYY
-
-## Features
-
-- **Zero-Shot Categorization**: No training data needed — uses BART-MNLI for instant classification
-- **Anomaly Detection**: Flags unusual transactions based on your own spending patterns
-- **Spending Forecast**: Predicts next month's spend per category with confidence intervals
-- **AI Financial Advice**: Personalized insights from Google Gemini (optional)
-- **Graceful Degradation**: Every component has a fallback — the app always works
-- **Indian Format Support**: Handles ₹ symbols, lakh formatting, Indian merchant names
-- **Privacy First**: All processing happens locally except optional Gemini API calls
-
-## Deployment
-
-The app is deployed on [Streamlit Community Cloud](https://streamlit.io/cloud).
-
-To deploy your own instance:
-1. Fork this repo
-2. Go to [share.streamlit.io](https://share.streamlit.io) and connect your GitHub account
-3. Select `adityadeshmukh23/arthasense`, branch `main`, main file `arthasense/app.py`
-4. Under **Advanced settings → Secrets**, add:
-   ```
-   GEMINI_API_KEY = "your_gemini_api_key_here"
-   ```
-5. Click **Deploy** — the app will be live in ~5 minutes
+1. Fork this repo.
+2. At [share.streamlit.io](https://share.streamlit.io), choose your fork, branch `main`, main file `app.py`.
+3. Optionally add `GEMINI_API_KEY = "..."` under **Advanced settings → Secrets**.

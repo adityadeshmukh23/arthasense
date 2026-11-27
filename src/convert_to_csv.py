@@ -528,7 +528,7 @@ def _parse_paytm_pdf(pdf_source: Any) -> pd.DataFrame:
             amt_m = m                                    # keep the LAST match
         if amt_m is None:
             stats_skip["no_amount"] += 1
-            logger.debug("No signed amount: %r", line0)
+            logger.debug("No signed amount in a line of length %d", len(line0))
             continue
         num = float(amt_m.group("num").replace(",", ""))
         amount = num if amt_m.group("sign") == "+" else -num

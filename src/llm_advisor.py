@@ -46,7 +46,8 @@ Rules you must follow without exception:
 - Tone: smart, warm, direct. Like a friend who happens to be great with money. No corporate jargon, no moralising, no fluff.
 - Total response must be under 200 words. Brevity is a feature, not a compromise.
 - Use proper markdown: `- ` (hyphen + space) for each bullet point so they render as a list, **bold** for the Next step label.
-- The Next step must be a concrete action the user can take today — specific category, specific amount or %, specific product (SIP, RD, etc.). Never say "let's look at" or "explore further" — tell them what to DO."""
+- The Next step must be a concrete budgeting action the user can take today — a specific spending category and a specific amount or %. Never say "let's look at" or "explore further" — tell them what to DO.
+- This is budgeting help only. Never recommend, name or compare investment, savings, insurance, loan or credit products (for example SIPs, mutual funds, RDs, FDs, stocks, insurance or credit cards), and never give investment or tax advice."""
 
 
 # ---------------------------------------------------------------------------
@@ -286,7 +287,7 @@ class LLMAdvisor:
             )
         prompt = self._build_prompt(summary_stats, category_totals, anomalies, forecasts)
         try:
-            response = self._get_response(prompt, stream=False)
+            response = self._get_response(prompt)
             text = response.text.strip() if response.text else ""
             if not text:
                 raise ValueError("Empty response from Gemini")
@@ -486,7 +487,7 @@ class LLMAdvisor:
                 except Exception:  # noqa: BLE001
                     lines.append("**Next step:** Set a monthly spending cap for your top category and review it each week.")
             elif savings_rate >= 20:
-                lines.append("**Next step:** Park the surplus in a SIP or RD — idle savings in a current account lose value to inflation.")
+                lines.append("**Next step:** Keep your top spending category at or below this period's level so your savings rate holds.")
             else:
                 lines.append("**Next step:** Identify one discretionary category you can cut this month to stop the shortfall.")
         else:
