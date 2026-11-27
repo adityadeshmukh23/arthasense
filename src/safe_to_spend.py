@@ -457,16 +457,28 @@ def weeks_available(txns: pd.DataFrame, as_of: date) -> int:
     return int(((as_of - start).days + 1) // 7)
 
 
-def usual_weekly_spend(txns: pd.DataFrame, bill_rows: pd.Series, as_of: date) -> Optional[tuple[float, int]]:
-    """Average everyday spend per week over up to 8 full weeks ending at as_of."""
+def weekly_totals(txns: pd.DataFrame, bill_rows: pd.Series, as_of: date) -> list[float]:
+    """Everyday spend in each of the last (up to 8) full 7-day windows ending at as_of, oldest first."""
     weeks = min(MAX_WEEKS_AVERAGED, weeks_available(txns, as_of))
-    if weeks < 1:
-        return None
-    lo = pd.Timestamp(as_of - timedelta(days=7 * weeks - 1))
-    hi = pd.Timestamp(as_of)
     e = _everyday(txns, bill_rows)
-    total = float(e[(e["date"] >= lo) & (e["date"] <= hi)]["debit"].sum())
-    return total / weeks, weeks
+    out = []
+    for k in range(weeks - 1, -1, -1):
+        hi = pd.Timestamp(as_of - timedelta(days=7 * k))
+        lo = hi - pd.Timedelta(days=6)
+        out.append(float(e[(e["date"] >= lo) & (e["date"] <= hi)]["debit"].sum()))
+    return out
+
+
+def usual_weekly_spend(txns: pd.DataFrame, bill_rows: pd.Series, as_of: date) -> Optional[tuple[float, int]]:
+    """Median everyday spend per week over up to 8 full weeks ending at as_of.
+
+    The median, not the mean, so a one-off (a medical bill, a flight home)
+    in one week doesn't inflate what counts as "usual".
+    """
+    totals = weekly_totals(txns, bill_rows, as_of)
+    if not totals:
+        return None
+    return float(np.median(totals)), len(totals)
 
 
 @dataclass
@@ -514,7 +526,7 @@ class Answer:
     days: int                  # days to payday
     horizon: int               # min(7, days)
     daily: float               # available / days (0 if short)
-    weekly: float              # daily * horizon, floored to the rupee (0 if short)
+    weekly: float              # available * horizon / days, floored to the rupee (0 if short)
     shortfall: Optional[float]
 
 
@@ -538,8 +550,34 @@ def safe_to_spend(balance: float, bills: float, buffer: float, today: date, payd
         return Answer(balance, bills, buffer, available, days, horizon, 0.0, 0.0,
                       shortfall=-available if available < 0 else 0.0)
     daily = available / days
-    weekly = math.floor(daily * horizon)
+    weekly = math.floor(available * horizon / days)
     return Answer(balance, bills, buffer, available, days, horizon, daily, float(weekly), None)
+
+
+@dataclass
+class Comparison:
+    state: str                      # "short", "over" (usual above limit), "fits", "unknown"
+    usual_period: Optional[float]   # usual weekly spend scaled to the limit's days
+    gap: float = 0.0                # how much less to spend in the period
+    covered: float = 0.0            # part of the gap the suggested change covers
+    remaining: float = 0.0          # gap left after the suggestion
+
+
+def compare_to_usual(answer: Answer, usual_weekly: Optional[float],
+                     suggestion: Optional["Suggestion"] = None) -> Comparison:
+    """Compare the safe limit with usual spending over the same number of days."""
+    if answer.shortfall is not None:
+        return Comparison("short", None)
+    if usual_weekly is None:
+        return Comparison("unknown", None)
+    usual_period = usual_weekly * answer.horizon / 7
+    if usual_period <= answer.weekly:
+        return Comparison("fits", usual_period)
+    gap = math.ceil(usual_period - answer.weekly)
+    covered = 0.0
+    if suggestion is not None:
+        covered = float(min(gap, math.floor(suggestion.frees * answer.horizon / 7)))
+    return Comparison("over", usual_period, float(gap), covered, float(gap - covered))
 
 
 @dataclass

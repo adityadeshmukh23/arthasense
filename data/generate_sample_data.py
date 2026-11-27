@@ -13,7 +13,9 @@ Profile (per full month):
   - Broadband ₹589 (10th), Netflix ₹199 (12th), Spotify ₹119 (18th),
     Jio postpaid ₹399 (22nd); electricity varies (around the 15th)
   - Day-to-day spending: groceries, food delivery, transport, shopping, cash
-  - Saves roughly 10–20 % of salary each month
+  - Saves roughly 12–17 % of salary in each full month (June–October)
+  - One-off in November: ₹23,000 dental treatment on 9 Nov, which leaves
+    the account tight until the 1 Dec salary
 
 Statement period: 21 May 2026 – 20 Nov 2026 (six months).
 Output: data/sample_transactions.csv  (Date,Description,Debit,Credit,Balance)
@@ -56,6 +58,7 @@ VARIABLE = [
     (["PVR CINEMAS", "BOOKMYSHOW"], (250, 700), (0, 1)),
 ]
 ATM = ("ATM WDL-HDFC ATM KORAMANGALA", 3_000.00)
+ONE_OFF = (date(2026, 11, 9), "MANIPAL HOSPITALS DENTAL TREATMENT", 23_000.00)
 
 
 def _month_starts(start: date, end: date):
@@ -112,6 +115,10 @@ def generate_transactions() -> list[dict]:
             txns.append({"date": m.replace(day=day),
                          "description": "UPI CR-SPLIT BILL SETTLEMENT FROM FRIEND",
                          "debit": None, "credit": float(random.randint(300, 900))})
+
+    # One-off November event: an unplanned dental treatment paid in full.
+    # This is what leaves the account tight before the next salary.
+    txns.append({"date": ONE_OFF[0], "description": ONE_OFF[1], "debit": ONE_OFF[2], "credit": None})
 
     # Make sure the statement ends on END (a small last-day purchase)
     txns.append({"date": END, "description": "UPI-CHAI POINT", "debit": 60.0, "credit": None})

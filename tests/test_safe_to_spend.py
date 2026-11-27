@@ -7,7 +7,8 @@ import pandas as pd
 import pytest
 
 from src.safe_to_spend import (
-    StatementError, _build_statement, add_months, bills_before_payday, check_in,
+    StatementError, Suggestion, _build_statement, add_months, bills_before_payday, check_in,
+    compare_to_usual, weekly_totals,
     detect_recurring, detect_salary, inr, load_statement, next_payday, one_change,
     safe_to_spend, tag_bill_rows, usual_weekly_spend, Recurring,
 )
@@ -139,7 +140,7 @@ class TestSample:
         assert t[t["description"].str.contains("Self", case=False)]["is_self"].all()
         rows = tag_bill_rows(t, detect_recurring(t, st.end))
         usual, _ = usual_weekly_spend(t, rows, st.end)
-        assert usual < 10000   # would be far higher if transfers/rent counted
+        assert usual < 8000    # would be far higher if transfers/rent counted
 
     def test_recurring_found(self, st):
         groups = {r.group for r in detect_recurring(st.txns, st.end)}
@@ -299,3 +300,96 @@ def test_fake_bank_layouts(name):
     assert [(b.group, b.amount) for b in bills] == [("Own-account transfer", 4000), ("Bills and subscriptions", 649)]
     a = safe_to_spend(s.balance, 4649, 2000, s.end, pay)
     assert a.days == 6 and a.horizon == 6 and a.weekly == 18836
+
+
+# --------------------------------------------------------------------- round 3
+
+def test_weekly_is_amount_times_horizon_over_days_floored():
+    import math
+    for bal in (5000, 8524, 12345.67, 99999):
+        for days in range(1, 30):
+            a = safe_to_spend(bal, 399, 2000, date(2026, 11, 20), date(2026, 11, 20) + timedelta(days=days))
+            if a.shortfall is None:
+                assert a.weekly == math.floor(a.available * min(7, days) / days)
+
+
+class TestSampleNumbers:
+    """The synthetic sample is built to show the problem: limit ~27% below usual."""
+
+    def test_full_working(self, st):
+        t = st.txns
+        rec = detect_recurring(t, st.end)
+        rows = tag_bill_rows(t, rec)
+        payday = next_payday(detect_salary(t).last_date, st.end)
+        bills = bills_before_payday(rec, st.end, payday)
+        assert st.balance == 8524 and payday == date(2026, 12, 1)
+        assert sum(b.amount for b in bills) == 399
+        a = safe_to_spend(st.balance, 399, 2000, st.end, payday)
+        assert a.available == 6125 and a.days == 11 and a.weekly == 3897   # floor(6125*7/11 = 3897.73)
+        usual, weeks = usual_weekly_spend(t, rows, st.end)
+        assert weeks == 8 and usual == 5335
+        assert 0.20 <= 1 - a.weekly / usual <= 0.35
+        tip = one_change(t, rows, st.end)
+        c = compare_to_usual(a, usual, tip)
+        assert (c.state, c.gap, c.covered, c.remaining) == ("over", 1438, 311, 1127)
+
+    def test_balance_never_negative(self, st):
+        assert (st.txns["balance"] >= 0).all()
+
+    def test_one_off_is_labelled_and_does_not_move_usual(self, st):
+        t = st.txns
+        assert t["description"].str.contains("Dental", case=False).sum() == 1
+        rows = tag_bill_rows(t, detect_recurring(t, st.end))
+        totals = weekly_totals(t, rows, st.end)
+        assert max(totals) > 30000                       # the one-off week
+        assert usual_weekly_spend(t, rows, st.end)[0] < 6000   # median ignores it
+
+
+def test_usual_is_median_not_mean():
+    rows = [("2026-10-01", "SALARY CREDIT", 0, 50000, 50000)]
+    bal = 50000
+    for w in range(8):                                   # 8 weeks of ₹1,000 groceries
+        bal -= 1000
+        rows.append((str(date(2026, 10, 2) + timedelta(days=7 * w)), "BLINKIT ORDER", 1000, 0, bal))
+    bal -= 20000
+    rows.append(("2026-11-20", "APOLLO HOSPITAL", 20000, 0, bal))
+    st_ = _stmt(rows)
+    u, n = usual_weekly_spend(st_.txns, tag_bill_rows(st_.txns, []), st_.end)
+    assert u == 1000 and n == 7
+
+
+class TestCompare:
+    def _a(self, bal=10000, days=11):
+        return safe_to_spend(bal, 0, 2000, date(2026, 11, 20), date(2026, 11, 20) + timedelta(days=days))
+
+    def test_fits(self):
+        a = self._a(20000)               # weekly = floor(18000*7/11) = 11454
+        c = compare_to_usual(a, 5000)
+        assert c.state == "fits" and c.gap == 0
+
+    def test_over_without_tip(self):
+        a = self._a()                    # weekly = floor(8000*7/11) = 5090
+        c = compare_to_usual(a, 6000)
+        assert (c.state, c.gap, c.covered, c.remaining) == ("over", 910, 0, 910)
+
+    def test_tip_covers_whole_gap(self):
+        a = self._a()
+        c = compare_to_usual(a, 5300, Suggestion("Shopping", 2000, 8, 1500, 500))
+        assert c.gap == 210 and c.covered == 210 and c.remaining == 0
+
+    def test_short_horizon_scales_usual(self):
+        a = self._a(days=3)              # horizon 3, weekly = 8000
+        c = compare_to_usual(a, 7000)    # usual over 3 days = 3000
+        assert c.state == "fits" and c.usual_period == 3000
+
+    def test_shortfall_and_unknown(self):
+        assert compare_to_usual(self._a(1000), 5000).state == "short"
+        assert compare_to_usual(self._a(), None).state == "unknown"
+
+
+def test_check_in_uses_days_left_from_check_date():
+    a = safe_to_spend(8524, 399, 2000, date(2026, 11, 20), date(2026, 12, 1))
+    early = check_in(a, 1000, date(2026, 11, 21), date(2026, 11, 20), date(2026, 12, 1))
+    late = check_in(a, 1000, date(2026, 11, 27), date(2026, 11, 20), date(2026, 12, 1))
+    assert early.days_left == 10 and early.daily_until_payday == (6125 - 1000) // 10
+    assert late.days_left == 4 and late.daily_until_payday == (6125 - 1000) // 4

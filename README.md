@@ -10,21 +10,30 @@ Upload a bank statement (CSV or Excel), check the details we found, and get a we
 
 1. **Start**: what the app does, what happens to your file, upload (needs consent), or try the sample in one click.
 2. **Confirm**: today's date, next salary day, current balance and its "as of" date, bills due before payday, payday bills (off by default), planned transfers to your own accounts, and a buffer (₹2,000 by default). Everything can be edited, added to, removed or retyped.
-3. **Answer**: the weekly safe amount next to your usual weekly everyday spend, "How we got this", and one optional change.
+3. **Answer**: the weekly safe amount next to your usual weekly everyday spend, and "How we got this". Then one of two messages:
+   - **Usual spending is above the limit**: how much less to spend per week to reach payday with the buffer intact, how much of that gap one suggested change covers, and what remains.
+   - **Usual spending fits**: says so, and presents the limit as a maximum, not a target.
 4. **Check-in**: enter spending since the last check and see what is left this week and per day until payday. Nothing is saved after the session.
 
 ## The formula
 
 ```
-weekly = (balance − bills before payday − buffer) / days to payday × min(7, days to payday)
+weekly = (balance − bills before payday − buffer) × min(7, days to payday) ÷ days to payday
 ```
 
-Rounded down to the rupee. With the synthetic sample:
+Rounded down to the rupee. With the synthetic sample (today = 20 Nov, payday = 1 Dec):
 
 ```
-₹31,524 − ₹399 (Jio postpaid, due 22 Nov) − ₹2,000 buffer = ₹29,125
-₹29,125 ÷ 11 days (20 Nov → 1 Dec) = ₹2,647.73 a day
-₹2,647.73 × 7 = ₹18,534.09 → ₹18,534 this week
+Balance on 20 Nov                         ₹8,524
+− Jio postpaid, due 22 Nov                  ₹399
+− Buffer                                  ₹2,000
+= Left until payday                       ₹6,125
+₹6,125 × 7 ÷ 11 days = ₹3,897.73  →  ₹3,897 this week
+
+Usual everyday spend (median of 8 weeks)  ₹5,335 a week   (limit is 27% below)
+Spend less per week by                    ₹5,335 − ₹3,897 = ₹1,438
+Shopping averages ₹1,245/week; 25% less  saves ₹311 of that gap
+Still to find                             ₹1,127 a week
 ```
 
 Rules (all in `src/safe_to_spend.py`, tested in `tests/test_safe_to_spend.py`):
@@ -34,9 +43,9 @@ Rules (all in `src/safe_to_spend.py`, tested in `tests/test_safe_to_spend.py`):
 - **Bills** are monthly debits seen in 2+ months on a similar day with a steady amount (rent, EMIs, bills, subscriptions). We include those due after the balance date and before payday, plus any expected but not yet seen (up to 31 days late). Bills due on payday are listed separately and left out unless you tick them.
 - **Own-account transfers** ("SELF", "OWN A/C", or the same amount out and back within a day) are never counted as spending. Regular ones due before payday are listed as planned outflows you can remove.
 - **Shortfall**: if the balance minus bills and buffer is below zero, the app says how short you are and shows no weekly number.
-- **Usual weekly spend**: everyday debits (not bills, rent, EMIs or own-account transfers), averaged over up to 8 full weeks.
+- **Usual weekly spend**: the **median** weekly total of everyday debits (not bills, rent, EMIs or own-account transfers) over up to 8 full weeks. The median means a one-off, such as the sample's dental bill, doesn't inflate "usual". When fewer than 7 days remain, usual is scaled to the same number of days before comparing.
 - **One change**: the largest discretionary group (food delivery, eating out, shopping, entertainment) averaged over up to 8 weeks, with 25% less offered as an option. It is hidden with fewer than 4 weeks of data.
-- **Check-in**: entered spend excludes listed bills. If you go over the weekly limit, the app says by how much and recalculates a daily amount until payday.
+- **Check-in**: asks for the check-in date and the amount spent since the last check (excluding listed bills). It recalculates the daily amount from that date: (left until payday − spent) ÷ days left, rounded down. If you go over the weekly limit, it says by how much.
 
 There is no AI call anywhere in this journey.
 
@@ -72,7 +81,9 @@ pytest tests/ -v
 - ₹58,400 salary on the 1st, ₹16,000 rent, a ₹3,450 phone EMI
 - four subscriptions and a monthly ₹5,000 transfer to their own account
 - everyday spending
-- saves 12.5–16.7% in each full month
+- saves 12.5–16.7% in each full month (June–October)
+- **one-off on 9 Nov**: a ₹23,000 dental treatment, which leaves the account tight before the 1 Dec salary
+- the balance never goes below ₹2,961
 
 Regenerate it with `python data/generate_sample_data.py`. The other files in `data/` and `tests/fixtures/` are also synthetic. Names and account numbers in them are invented.
 

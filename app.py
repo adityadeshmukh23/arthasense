@@ -17,7 +17,7 @@ import streamlit as st
 from src.safe_to_spend import (
     DEFAULT_BUFFER, GROUP_CHOICES, StatementError, bills_before_payday, check_in,
     detect_recurring, detect_salary, inr, load_statement, next_payday, one_change,
-    safe_to_spend, tag_bill_rows, usual_weekly_spend,
+    compare_to_usual, safe_to_spend, tag_bill_rows, usual_weekly_spend,
 )
 
 APP_VERSION = "3.0"
@@ -368,7 +368,7 @@ def screen_answer() -> None:
                 usual, wk = p["usual"]
                 st.markdown(f'<div class="as-card as-soft"><div class="as-label">You usually spend</div>'
                             f'<div class="as-mid">{inr(usual)} a week</div>'
-                            f'<div class="as-small">Everyday spending, average of the last {wk} week{"s" if wk > 1 else ""}. '
+                            f'<div class="as-small">Everyday spending in a typical week (median of the last {wk} week{"s" if wk > 1 else ""}). '
                             f'Excludes bills, rent, EMIs and own-account transfers.</div></div>',
                             unsafe_allow_html=True)
             else:
@@ -382,17 +382,42 @@ def screen_answer() -> None:
     st.markdown(_sum_table(p, a), unsafe_allow_html=True)
     if a.shortfall is None:
         st.markdown(
-            f'<p class="as-small" style="margin-top:.6rem;">{inr(a.available)} ÷ {a.days} days to payday '
-            f'({fmt_d(p["payday"])}) = {inr2(a.daily)} a day.<br>{inr2(a.daily)} × {a.horizon} days = '
-            f'{inr2(a.daily * a.horizon)}, rounded down to <b>{inr(a.weekly)}</b>.</p>', unsafe_allow_html=True)
+            f'<p class="as-small" style="margin-top:.6rem;">{inr(a.available)} × {a.horizon} ÷ {a.days} days to payday '
+            f'({fmt_d(p["payday"])}) = {inr2(a.available * a.horizon / a.days)}, rounded down to '
+            f'<b>{inr(a.weekly)}</b>.</p>', unsafe_allow_html=True)
 
     tip = p["tip"]
-    if tip and a.shortfall is None:
-        st.markdown("### One thing to try")
+    usual = p["usual"][0] if p["usual"] else None
+    cmp_ = compare_to_usual(a, usual, tip)
+    span = "a week" if a.horizon == 7 else f"over these {a.horizon} days"
+    if cmp_.state == "over":
+        st.markdown("### Your usual spending is above the limit")
         st.markdown(
-            f'<div class="as-card">{tip.group} has averaged <b>{inr(tip.weekly_avg)} a week</b> over the '
-            f'last {tip.weeks} weeks. If you spend 25% less this week, about {inr(tip.cut_to)}, '
-            f'you keep <b>{inr(tip.frees)}</b> more for later. Optional.</div>', unsafe_allow_html=True)
+            f'<div class="as-card">To reach payday with your {inr(a.buffer)} buffer intact, spend '
+            f'<b>{inr(cmp_.gap)} less</b> than usual {span}: {inr(a.weekly)} instead of about '
+            f'{inr(cmp_.usual_period)}.</div>', unsafe_allow_html=True)
+        if tip:
+            st.markdown("#### One change that helps")
+            rest = (f"That leaves <b>{inr(cmp_.remaining)}</b> still to find {span}."
+                    if cmp_.remaining > 0 else "That covers the whole gap.")
+            st.markdown(
+                f'<div class="as-card">{tip.group} has averaged {inr(tip.weekly_avg)} a week over the last '
+                f'{tip.weeks} weeks. Spending 25% less, about {inr(tip.cut_to)}, saves <b>{inr(cmp_.covered)}</b> '
+                f'of the {inr(cmp_.gap)} gap. {rest} Optional.</div>', unsafe_allow_html=True)
+        else:
+            st.markdown('<p class="as-small">We need at least 4 weeks of history to suggest a specific change.</p>',
+                        unsafe_allow_html=True)
+    elif cmp_.state == "fits":
+        st.markdown("### Your usual spending fits")
+        st.markdown(
+            f'<div class="as-card">You typically spend about {inr(cmp_.usual_period)} {span}, which is within the limit. '
+            f'{inr(a.weekly)} is the <b>most</b> you can spend and still reach payday with your buffer. '
+            f'It is a ceiling, not a target. Whatever you don\'t spend stays in your account.</div>',
+            unsafe_allow_html=True)
+        if tip:
+            st.markdown(
+                f'<p class="as-small">Optional: {tip.group} has averaged {inr(tip.weekly_avg)} a week. '
+                f'25% less, about {inr(tip.cut_to)}, keeps {inr(tip.frees)} more.</p>', unsafe_allow_html=True)
 
     st.write("")
     if a.shortfall is None and st.button("Track my spending this week", type="primary", width="stretch"):
@@ -416,7 +441,7 @@ def screen_checkin() -> None:
 
     last_date = ss.checkins[-1][0] if ss.checkins else p["today"]
     with st.form("ci_form", clear_on_submit=True):
-        d = st.date_input("Date", value=max(last_date, p["today"]), min_value=p["today"],
+        d = st.date_input("Check-in date", value=max(last_date, p["today"]), min_value=p["today"],
                           max_value=p["payday"] - timedelta(days=1), format="DD/MM/YYYY")
         amt = st.number_input("Spent since your last check (₹)", min_value=0, step=50, value=None,
                               placeholder="0",
@@ -433,9 +458,16 @@ def screen_checkin() -> None:
     check_date = ss.checkins[-1][0] if ss.checkins else p["today"]
     c = check_in(a, spent, check_date, p["today"], p["payday"])
 
+    week_over = check_date > week_end
     if c.shortfall is not None and c.shortfall > 0:
         st.markdown(f'<div class="as-card"><div class="as-label">You have spent more than is left until payday</div>'
                     f'<div class="as-short">Short by {inr(c.shortfall)}</div></div>', unsafe_allow_html=True)
+    elif week_over:
+        st.markdown(f'<div class="as-card"><div class="as-label">Until payday, from {fmt_d(check_date)}</div>'
+                    f'<div class="as-big">{inr(c.daily_until_payday)} a day</div>'
+                    f'<div class="as-small">For {c.days_left} day{"s" if c.days_left != 1 else ""}. Spent since '
+                    f'{fmt_d(p["today"])}: {inr(spent)}. The {fmt_d(p["today"])} – {fmt_d(week_end)} week has ended.</div></div>',
+                    unsafe_allow_html=True)
     elif c.over_by:
         st.markdown(f'<div class="as-card"><div class="as-label">Over this week\'s limit by</div>'
                     f'<div class="as-short">{inr(c.over_by)}</div>'
@@ -449,8 +481,14 @@ def screen_checkin() -> None:
                     f'{inr(c.daily_until_payday)} a day for {c.days_left} day{"s" if c.days_left != 1 else ""}.</div></div>',
                     unsafe_allow_html=True)
 
-    if check_date > week_end:
-        st.info("This week is over. Go back and enter your current balance for a fresh weekly amount.")
+    if c.days_left > 0 and (c.shortfall is None or c.shortfall == 0):
+        st.markdown(
+            f'<p class="as-small">Recalculated from {fmt_d(check_date)}: ({inr(a.available)} − {inr(spent)} spent) '
+            f'÷ {c.days_left} day{"s" if c.days_left != 1 else ""} to payday = {inr(c.daily_until_payday)} a day, '
+            f'rounded down.</p>', unsafe_allow_html=True)
+
+    if week_over:
+        st.info("For a fresh weekly amount, go back and enter your current balance.")
 
     if ss.checkins:
         st.markdown("#### Your check-ins")
