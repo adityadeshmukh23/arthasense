@@ -529,6 +529,11 @@ class Answer:
     weekly: float              # available * horizon / days, floored to the rupee (0 if short)
     shortfall: Optional[float]
 
+    @property
+    def daily_shown(self) -> int:
+        """Daily amount as displayed: rounded down, like the check-in screen."""
+        return math.floor(self.daily)
+
 
 def safe_to_spend(balance: float, bills: float, buffer: float, today: date, payday: date) -> Answer:
     """weekly = (balance - bills - buffer) / days * min(7, days).

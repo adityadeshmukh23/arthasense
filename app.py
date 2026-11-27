@@ -362,7 +362,7 @@ def screen_answer() -> None:
         with c1:
             st.markdown(f'<div class="as-card"><div class="as-label">Safe to spend, {fmt_d(p["today"])} – {fmt_d(end)}</div>'
                         f'<div class="as-big">{inr(a.weekly)}</div>'
-                        f'<div class="as-small">About {inr(a.daily)} a day</div></div>', unsafe_allow_html=True)
+                        f'<div class="as-small">About {inr(a.daily_shown)} a day</div></div>', unsafe_allow_html=True)
         with c2:
             if p["usual"]:
                 usual, wk = p["usual"]

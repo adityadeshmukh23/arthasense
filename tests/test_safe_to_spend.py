@@ -326,6 +326,10 @@ class TestSampleNumbers:
         assert sum(b.amount for b in bills) == 399
         a = safe_to_spend(st.balance, 399, 2000, st.end, payday)
         assert a.available == 6125 and a.days == 11 and a.weekly == 3897   # floor(6125*7/11 = 3897.73)
+        # Daily on the answer screen is rounded down (556.82 -> 556) and matches
+        # the check-in screen before any spending is entered.
+        assert a.daily_shown == 556
+        assert check_in(a, 0, st.end, st.end, payday).daily_until_payday == a.daily_shown
         usual, weeks = usual_weekly_spend(t, rows, st.end)
         assert weeks == 8 and usual == 5335
         assert 0.20 <= 1 - a.weekly / usual <= 0.35
